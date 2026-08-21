@@ -1,10 +1,50 @@
+# Environment variables
 .env
+.env.*
+!.env.example
+
+# Python
 __pycache__/
-*.pyc
-venv/
+*.py[cod]
+.pytest_cache/
 .venv/
+venv/
+env/
+ENV/
+
+# Database
+*.db
+db.sqlite3
+db.sqlite3-journal
+
+# Node
 node_modules/
 frontend/node_modules/
 frontend/dist/
-*.db
+
+# Build files
+build/
+dist/
+*.egg-info/
+
+# IDE
 .vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Testing / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Temporary files
+tempCodeRunnerFile.py
