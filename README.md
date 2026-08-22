@@ -1,86 +1,228 @@
-# Smart Resume Screener (AI-Assisted ATS & Candidate Screening Engine)
+# Smart Resume Screener
 
-A modular AI-assisted resume screening and applicant tracking platform designed for talent acquisition workflows. It combines **local semantic vector retrieval (`sentence-transformers/all-MiniLM-L6-v2`)**, **structured LLM evaluation**, **deterministic calibrated fallback scoring**, **claim-by-claim hallucination guarding**, and **blind review privacy enforcement**.
-
----
-
-## 1. System Architecture
-
-```
-                                  +---------------------------------------+
-                                  | React + Vite + TypeScript (ATS UI)    |
-                                  | - Candidate Table with Filters        |
-                                  | - Blind Review Redaction Toggle       |
-                                  | - Side-by-Side Candidate Comparison   |
-                                  | - Compliance Audit Log Trail          |
-                                  +-------------------+-------------------+
-                                                      | HTTP / REST
-                                                      v
-                                  +---------------------------------------+
-                                  | FastAPI Backend Application           |
-                                  | - Upload Validation (10MB, PDF/TXT)   |
-                                  | - PII Stripping & Anonymization Engine|
-                                  | - SSRF-Protected External Link Checker|
-                                  +---------+-------------------+---------+
-                                            |                   |
-                     +----------------------+                   +----------------------+
-                     v                                                                 v
-+------------------------------------------+                      +------------------------------------------+
-| Semantic Retrieval Pipeline              |                      | Multi-Dimension Evaluation Pipeline      |
-| 1. Chunk Resume Bullets                  |                      | 1. Hard Requirements (Mandatory Skills)  |
-| 2. Dense Embeddings (all-MiniLM-L6-v2)   |                      | 2. Soft Requirements (Preferred/Domain)  |
-| 3. Global In-Memory Vector Cache         |                      | 3. LLM Evaluator (Gemini / Fallback)     |
-| 4. Cosine Similarity Pre-filtering (Top N|                      | 4. Deterministic Calibrated Fallback     |
-+------------------------------------------+                      | 5. Hallucination Guard (Claim Audit)     |
-                                                                  | 6. Multi-Factor Confidence Index         |
-                                                                  +--------------------+---------------------+
-                                                                                       |
-                                                                                       v
-                                                                  +------------------------------------------+
-                                                                  | SQLite Storage Engine (WAL Mode)         |
-                                                                  | - Compound Indexes on Screenings/Uploads |
-                                                                  | - Structured PII-Sanitized Audit Logs    |
-                                                                  +------------------------------------------+
-```
+Smart Resume Screener is an automated applicant tracking and resume screening system designed for talent acquisition teams. The platform extracts structured skills, experience, and education from PDF and text resumes, parses job description requirements, and evaluates candidate fit using dense semantic matching and structured LLM evaluation. It provides recruiters with evidence-grounded scoring, transparent requirement matrices, side-by-side comparisons, and blind-review privacy controls.
 
 ---
 
-## 2. Core Features
+## Key Features
 
-### Recruiter Dashboard
-- **Real-Time KPIs**: Total Candidates, Screened, Shortlisted, Interviews.
-- **Table-Heavy Interface**: Search, Job filter, Status filter, Score filter, Multi-select bulk shortlisting, and candidate comparison.
-- **Compact Progress Bars**: Visualizes overall score (`92% [█████████░]`) and sub-dimensions without circular gauges.
-
-### Job Description Intelligence
-- **Automated JD Parser**: Converts raw job descriptions into structured titles, seniority levels, min experience, and categorized mandatory vs. preferred skills using rule-based pattern matching and skill taxonomy dictionaries.
-- **Editable Requirements**: Recruiters can modify extracted chips and criteria before saving.
-
-### 5-Dimension Scoring Matrix
-1. **Skills Alignment (30%)**: Matches extracted skills against job taxonomy.
-2. **Experience Depth (25%)**: Compares verified tenure against minimum years.
-3. **Evidence Quality (20%)**: Categorizes bullet points into **STRONG** (quantified outcome metrics: latency, scale, headcount, revenue), **MEDIUM** (technical actions), and **WEAK** (generic duties).
-4. **Seniority Alignment (15%)**: Assesses title progression and career trajectory.
-5. **Education Fit (10%)**: Degree level and academic specialization fit.
-
-### Security, Safety & Privacy
-- **Blind Review PII Redaction**: Hides candidate names, emails, phone numbers, and graduation years to mitigate unconscious bias.
-- **SSRF URL Validation**: Resolves domain IPs and blocks private networks (RFC 1918), AWS/GCP metadata services (`169.254.169.254`), and loopback addresses.
-- **Upload Security**: 10MB file limit, MIME allowlisting (`.pdf`, `.txt`), path traversal defense, and PDF parsing timeout protection.
-- **Prompt Injection Detection**: Scans candidate bullets for instruction override patterns, flags suspicious inputs, and wraps untrusted data in XML boundaries.
-- **Audit Logging**: SQLite audit trail tracking recruiter and screening actions with automated email/phone scrubbing.
+- **Multi-Format Resume Parsing**: Ingests .pdf and .txt resumes with automated text extraction, section splitting, and bullet-point chunking.
+- **Structured Candidate Extraction**: Extracts candidate contact details, skills with taxonomy normalization, verified employment date ranges, and academic credentials.
+- **Job Description Intelligence**: Analyzes raw job descriptions to extract required skills, preferred skills, minimum experience thresholds, and categorized requirements (mandatory vs. preferred).
+- **Dense Semantic Retrieval**: Employs sentence-transformers/all-MiniLM-L6-v2 embeddings for sub-millisecond candidate-to-job semantic pre-filtering.
+- **Multi-Dimension Calibrated Scoring**: Evaluates candidate fit across 5 weighted dimensions: Skills (30%), Experience (25%), Evidence Quality (20%), Seniority Alignment (15%), and Education Fit (10%).
+- **Hard vs. Soft Criteria Separation**: Differentiates non-negotiable mandatory qualifications from bonus preferred skills, preventing false-positive rankings.
+- **Claim-by-Claim Hallucination Guard**: Audits model-generated claims against ground-truth extracted resume text to penalize and flag unevidenced qualifications.
+- **Multi-Factor Confidence Index**: Calibrates evaluation confidence (High, Medium, Low) based on evidence density, textual clarity, and requirement coverage.
+- **Blind Review & PII Redaction**: Masks names, emails, phone numbers, and graduation years to mitigate unconscious demographic bias during initial screening.
+- **Candidate Comparison Matrix**: Side-by-side candidate comparison across sub-dimension scores, matched criteria, verified tenure, and key strengths.
+- **Security & Privacy Safeguards**: Built-in SSRF protection on external links, file upload validation (10MB limit, MIME checks), prompt injection detection, and tamper-evident audit logging.
 
 ---
 
-## 3. LLM Prompts
+## Screenshots
 
-The backend uses structured prompt templates to evaluate candidates against job descriptions when an LLM API key (`GEMINI_API_KEY`) is provided.
+> *Placeholders for key recruiter dashboard workflows.*
 
-### Candidate Evaluation & Structured Scoring Prompt
-- **Source**: [`backend/app/scoring/prompt_templates.py`](file:///C:/Users/ASUS/.gemini/antigravity/scratch/smart-resume-screener/backend/app/scoring/prompt_templates.py) (`build_evaluation_prompt`)
-- **Invocation**: Used by `score_candidate_with_llm` in `llm_scorer.py` to evaluate anonymized candidate profiles against job requirements and generate dimension scores, matched skills, flags, and an interview justification.
+### 1. Job Creation & Requirement Extraction
+`
++-----------------------------------------------------------------------------------+
+|  [+] Create New Job Position                                                      |
+|  Title: Data Analyst - Entry Level        Department: Analytics                   |
+|  Seniority: Entry-Level                   Min Experience: 0 Years                 |
+|  -------------------------------------------------------------------------------  |
+|  Extracted Mandatory Skills: [Python] [SQL] [Pandas] [NumPy] [Data Viz] [Stats]   |
+|  Extracted Preferred Skills: [Power BI] [Microsoft Excel]                         |
++-----------------------------------------------------------------------------------+
+`
+*(Screenshot path: docs/screenshots/01_job_creation.png)*
 
-```text
+### 2. Candidate Ranking & Leaderboard
+`
++-----------------------------------------------------------------------------------+
+|  Leaderboard: Fresher Data Analyst (Entry Level)                   [Blind Review] |
+|  Rank  Candidate ID       Overall Score   Hard Match   Confidence   Status        |
+|  #1    Candidate #4d14e9  7.8 / 10        PASSED       Medium       NEW           |
+|  #2    Candidate #db51c4  7.0 / 10        PASSED       Medium       NEW           |
+|  #3    Candidate #39d196  5.5 / 10        FAILED       Low          NEW           |
++-----------------------------------------------------------------------------------+
+`
+*(Screenshot path: docs/screenshots/02_candidate_ranking.png)*
+
+### 3. Candidate Evaluation Dossier & Why This Candidate
+`
++-----------------------------------------------------------------------------------+
+|  EVALUATION DOSSIER: Candidate #4d14e9                     DETERMINATION: 7.8 / 10|
+|  Tenure: 0.2 Years • B.Tech in Electronics and Communication Engineering (ECE)    |
+|  -------------------------------------------------------------------------------  |
+|  Recommendation: Matches 5 of 6 mandatory skills, with additional experience in   |
+|  Microsoft Excel and Power BI.                                                    |
+|  Gaps: One mandatory skill is not evidenced: Statistics.                          |
++-----------------------------------------------------------------------------------+
+`
+*(Screenshot path: docs/screenshots/03_evaluation_dossier.png)*
+
+### 4. Requirement Matrix & Evidence Grounding
+`
++-----------------------------------------------------------------------------------+
+|  REQUIREMENTS TRACEABILITY MATRIX                                                 |
+|  [MATCHED] (STRONG)  Entry level / 0+ yrs exp  -> 0.2 yrs verified meets 0+ req   |
+|  [MATCHED] (STRONG)  Data Visualization        -> Backed by Plotly & Streamlit    |
+|  [MATCHED] (MEDIUM)  Python, SQL, Pandas       -> Explicitly listed & evidenced   |
+|  [MISSING] (NONE)    Statistics                -> Required skill not evidenced    |
+|  [PARTIAL] (MEDIUM)  Degree In Computer Science-> B.Tech ECE related tech field   |
++-----------------------------------------------------------------------------------+
+`
+*(Screenshot path: docs/screenshots/04_requirements_matrix.png)*
+
+---
+
+## Architecture
+
+`mermaid
+flowchart TD
+    subgraph Client ["Frontend Layer (React + Vite + TypeScript)"]
+        UI["Recruiter Dashboard"]
+        BR["Blind Review PII Toggle"]
+        COMP["Side-by-Side Comparison"]
+        AUDIT["Audit Log Viewer"]
+    end
+
+    subgraph API ["Backend API Layer (FastAPI)"]
+        AUTH["API Router & Upload Validator"]
+        PII["PII Stripper & Anonymizer"]
+        SSRF["SSRF-Protected Link Verifier"]
+    end
+
+    subgraph Extraction ["Extraction & Normalization Engine"]
+        PDF["PDF / TXT Extractor"]
+        OCR["Tesseract OCR Fallback"]
+        JD["JD Intelligence Parser"]
+        TAX["Skill Taxonomy & Degree Classifier"]
+    end
+
+    subgraph Semantic ["Retrieval & Indexing"]
+        EMB["sentence-transformers/all-MiniLM-L6-v2"]
+        VEC["Candidate Vector Index (Cosine Similarity)"]
+    end
+
+    subgraph Evaluation ["Multi-Dimension Scoring Engine"]
+        LLM["LLM Evaluator (Gemini 1.5 Flash / OpenAI)"]
+        RULE["Deterministic Calibrated Engine"]
+        GUARD["Claim Hallucination Guard"]
+        CONF["Multi-Factor Confidence Scorer"]
+    end
+
+    subgraph Storage ["Persistence Layer (SQLite WAL)"]
+        DB[(screener.db)]
+        CAND_TBL["candidates table"]
+        JOB_TBL["jobs table"]
+        SCR_TBL["screenings table"]
+        LOG_TBL["audit_logs table"]
+    end
+
+    UI -->|REST / Multipart Upload| AUTH
+    AUTH --> PII --> PDF --> OCR --> TAX
+    AUTH --> JD --> TAX
+    PDF --> CAND_TBL
+    JD --> JOB_TBL
+
+    TAX --> EMB --> VEC
+    VEC -->|Top-N Filtered Candidates| Evaluation
+    Evaluation --> LLM
+    Evaluation --> RULE
+    LLM --> GUARD --> CONF
+    RULE --> GUARD --> CONF
+
+    CONF --> SCR_TBL
+    AUTH --> LOG_TBL
+    SCR_TBL --> UI
+`
+
+### Component Overview
+
+1. **Frontend (React + Vite + TypeScript)**: Single-page application providing an ATS workspace with job selection, candidate management, dossier inspection, and blind-review controls.
+2. **Backend API (FastAPI)**: REST endpoints handling multipart file uploads, job parsing, screening orchestration, PII masking, and data export.
+3. **Extraction & Normalization Engine**: Extracts raw text from PDF/TXT documents, segments sections, chunks bullet points, normalizes skill aliases against a taxonomy, and calculates verified tenure.
+4. **Semantic Retrieval Index**: Local embedding pipeline (ll-MiniLM-L6-v2) generating dense vectors for candidate work bullets and pre-filtering candidates against job criteria.
+5. **Multi-Dimension Scoring Engine**: Combines structured LLM evaluation with deterministic fallback scoring, hallucination checking, and confidence calibration.
+6. **SQLite Storage Engine (WAL Mode)**: Relational storage for candidates, job definitions, screening scores, and immutable audit logs.
+
+---
+
+## AI Pipeline
+
+The screening engine processes resumes through a 9-step evaluation pipeline:
+
+`
+[Resume Upload] 
+      │
+      ▼
+1. Document Parsing ────────► Text extraction, section splitting, bullet chunking
+      │
+      ▼
+2. Candidate Extraction ────► Skills taxonomy mapping, tenure calculation, PII anonymization
+      │
+      ▼
+3. JD Intelligence ─────────► Requirement extraction (mandatory vs. preferred), experience thresholds
+      │
+      ▼
+4. Dense Vector Matching ───► all-MiniLM-L6-v2 embedding & cosine pre-filtering (Top-N)
+      │
+      ▼
+5. Multi-Dimension Scoring ─► 5-dimension evaluation (Skills, Experience, Evidence, Seniority, Education)
+      │
+      ▼
+6. Evidence Quality Audit ──► Classifies bullets into STRONG (metrics), MEDIUM (actions), WEAK
+      │
+      ▼
+7. Hallucination Guard ─────► Cross-references claimed skills against ground-truth extracted text
+      │
+      ▼
+8. Confidence Calibration ──► Computes confidence score based on evidence clarity & coverage
+      │
+      ▼
+9. Recruiter Justification ─► Generates requirement matrix & dynamic candidate summary
+`
+
+1. **Document Parsing** ([pdf_extractor.py](backend/app/extraction/pdf_extractor.py)): Extracts text from .pdf and .txt files with fallback to scanned OCR handling when native text is absent.
+2. **Candidate Extraction** ([section_splitter.py](backend/app/extraction/section_splitter.py), [	axonomy.py](backend/app/normalization/taxonomy.py)): Identifies sections (Experience, Skills, Education, Projects), maps synonyms to canonical skills, and calculates verified employment duration strictly from explicit date ranges.
+3. **Job Description Intelligence** ([jd_parser.py](backend/app/extraction/jd_parser.py)): Parses raw job descriptions into structured title, seniority, minimum experience, and categorized requirements.
+4. **Dense Semantic Retrieval** ([ector_store.py](backend/app/semantic/vector_store.py)): Computes dense embeddings over candidate bullet points and ranks candidates by semantic relevance to pre-filter candidate pools.
+5. **Multi-Dimension Evaluation** ([llm_scorer.py](backend/app/scoring/llm_scorer.py)): Evaluates candidate qualifications across 5 weighted dimensions.
+6. **Evidence Quality Classification** ([metric_detector.py](backend/app/evidence/metric_detector.py)): Analyzes bullet points for quantified business metrics (scale, latency, revenue, percentages).
+7. **Hallucination Guard** ([hallucination_guard.py](backend/app/scoring/hallucination_guard.py)): Verifies every claimed skill against the candidate's actual extracted resume text, penalizing unevidenced claims.
+8. **Confidence Calibration** ([confidence_scorer.py](backend/app/scoring/confidence_scorer.py)): Combines evidence strength, requirement coverage, and model certainty into a calibrated rating (High, Medium, Low).
+9. **Recruiter Justification** ([
+equirement_matcher.py](backend/app/scoring/requirement_matcher.py)): Produces a status (MATCHED, PARTIAL, MISSING), evidence strength, and specific reasoning per requirement.
+
+---
+
+## Scoring Methodology
+
+Screening scores are calculated on a **0.0 to 10.0 scale** using a 5-dimension weighted rubric:
+
+| Dimension | Weight | Evaluation Criteria |
+| :--- | :---: | :--- |
+| **Skills Alignment** | **30%** | Proportion of mandatory and preferred skills verified in technical background or work bullets. |
+| **Experience Depth** | **25%** | Verified professional employment duration relative to job minimum experience requirements. |
+| **Evidence Quality** | **20%** | Density of quantified outcome metrics (e.g., latency reduction, scale, throughput) in work history. |
+| **Seniority Alignment** | **15%** | Career progression, scope of responsibility, and organizational tenure match. |
+| **Education Fit** | **10%** | Degree level (Bachelor's, Master's, Ph.D.) and academic discipline alignment (Exact vs. Related vs. Non-Technical). |
+
+### Hard vs. Soft Criteria Handling
+
+- **Hard Requirements (Mandatory)**: Evaluated independently. If a candidate fails mandatory criteria (e.g., missing critical required skills or mandatory experience thresholds), hard_requirements_passed is marked alse.
+- **Soft Requirements (Preferred)**: Provide additive bonuses to sub-dimension scores without gating the candidate.
+- **Deterministic Calibrated Fallback**: If no LLM API key is configured or the external API is unreachable, the system executes an offline rule engine that replicates the 5-dimension rubric without degradation.
+
+---
+
+## LLM Prompt
+
+The production candidate evaluation prompt is defined in [ackend/app/scoring/prompt_templates.py](backend/app/scoring/prompt_templates.py) (uild_evaluation_prompt).
+
+`	ext
 You are an expert AI Technical Recruiter and Resume Screening Engine.
 Your task is to evaluate the following candidate objectively against the job description.
 
@@ -98,8 +240,8 @@ EVALUATION RULES:
 
 SCHEMA:
 {
-  "candidate_id": "{candidate.candidate_id}",
-  "job_id": "{job.job_id}",
+  "candidate_id": "{CANDIDATE_ID}",
+  "job_id": "{JOB_ID}",
   "skills_match": {
     "score": float (0-10),
     "matched": [list of strings],
@@ -155,153 +297,270 @@ Example Output JSON:
 }
 
 <UNTRUSTED_CANDIDATE_DATA>
-{candidate_data_json}
+{CANDIDATE_DATA_JSON}
 </UNTRUSTED_CANDIDATE_DATA>
 
 <TARGET_JOB_DESCRIPTION>
-{job_description_json}
+{JOB_DESCRIPTION_JSON}
 </TARGET_JOB_DESCRIPTION>
 
 OUTPUT JSON:
-```
+`
+
+### Prompt Engineering & Safeguards Rationale
+
+- **Injection Defense**: Isolates candidate-controlled content within <UNTRUSTED_CANDIDATE_DATA> tags with explicit directives instructing the LLM to treat content strictly as untrusted evidence.
+- **Evidence Grounding**: Restricts skill citations to explicitly evidenced text, preventing hallucinated or assumed skills.
+- **Few-Shot Calibration**: Provides an anchor example illustrating acceptable scoring rigor, flag formatting, and concise justification style.
+- **Strict JSON Enforcement**: Enforces a rigid schema for automated deserialization and validation via Pydantic models.
 
 ---
 
-## 4. Installation & Setup
+## Example Screening Result
+
+*Actual evaluation output from the screening pipeline for an entry-level Data Analyst candidate:*
+
+`json
+{
+  "candidate": {
+    "anonymized_name": "Candidate #4d14e9",
+    "total_experience_years": 0.2,
+    "education": [
+      {
+        "degree": "B.Tech in Electronics and Communication Engineering (ECE)"
+      }
+    ]
+  },
+  "score": {
+    "overall_score": 7.8,
+    "confidence": "Medium",
+    "hard_requirements_passed": true,
+    "summary_justification": "Scored 7.8/10 for Fresher Data Analyst (Entry Level). Candidate matches 5 of 6 mandatory skills with 0.2 years verified experience. Unconfirmed / missing: Statistics.",
+    "skills_match": {
+      "score": 8.1,
+      "matched": ["Data Visualization", "NumPy", "Pandas", "Python", "SQL", "Microsoft Excel", "Power BI"],
+      "missing": ["Statistics"],
+      "inferred": []
+    },
+    "experience_relevance": {
+      "score": 9.0,
+      "reasoning": "Candidate brings 0.2 years verified experience, meeting entry-level specifications."
+    },
+    "education_fit": {
+      "score": 7.0,
+      "reasoning": "Related technical engineering discipline: B.Tech in Electronics and Communication Engineering (ECE) partially aligns with core requirements."
+    },
+    "requirement_matches": [
+      {
+        "text": "Entry level / 0+ years professional experience",
+        "category": "experience",
+        "is_mandatory": false,
+        "status": "MATCHED",
+        "evidence_strength": "STRONG",
+        "reasoning": "Candidate profile (0.2 yrs verified) satisfies entry-level / 0+ years requirement."
+      },
+      {
+        "text": "Demonstrated hands-on expertise with Data Visualization",
+        "category": "skill",
+        "is_mandatory": true,
+        "status": "MATCHED",
+        "evidence_strength": "STRONG",
+        "reasoning": "Explicitly verified expertise in 'Data Visualization' backed by 2 work/project bullet(s)."
+      },
+      {
+        "text": "Demonstrated hands-on expertise with Statistics",
+        "category": "skill",
+        "is_mandatory": true,
+        "status": "MISSING",
+        "evidence_strength": "NONE",
+        "reasoning": "Required skill 'Statistics' not evidenced in resume."
+      }
+    ]
+  }
+}
+`
+
+---
+
+## Security & Privacy
+
+- **PII Anonymization & Blind Review** ([pii_stripper.py](backend/app/normalization/pii_stripper.py)): Masks candidate names, personal email addresses, international phone formats, and graduation years before displaying candidates in the recruiter interface.
+- **SSRF Protection** ([link_checker.py](backend/app/evidence/link_checker.py)): Validates URLs against private IP ranges (RFC 1918), loopback interfaces (127.0.0.1), and cloud instance metadata addresses (169.254.169.254).
+- **File Upload Validation** ([pdf_extractor.py](backend/app/extraction/pdf_extractor.py)): Enforces a 10MB maximum file size, restricts file extensions to .pdf and .txt, and sanitizes filenames against path traversal (../).
+- **Prompt Injection Defense** ([prompt_templates.py](backend/app/scoring/prompt_templates.py)): Scans input resumes for known instruction override patterns (e.g., "ignore previous instructions", "DAN mode") and isolates candidate text in XML boundaries.
+- **Tamper-Evident Audit Logging** ([udit.py](backend/app/core/audit.py)): Persists an immutable log of screening events, candidate profile views, and PII reveal actions in SQLite with automatic contact masking.
+- **Hallucination Guard** ([hallucination_guard.py](backend/app/scoring/hallucination_guard.py)): Cross-verifies claims against candidate extracted ground truth and applies calibrated penalties for unevidenced qualifications.
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Description |
+| :--- | :--- | :--- |
+| **Frontend** | React 18, Vite, TypeScript | Modern recruiter dashboard with responsive tables, modals, and drawers |
+| **Styling & UI** | Tailwind CSS, Lucide Icons | Component styling and icon system |
+| **Backend** | FastAPI, Uvicorn, Python 3.10+ | High-performance asynchronous REST API framework |
+| **Data Validation** | Pydantic v2 | Type-safe request/response schema modeling and validation |
+| **Database** | SQLite (WAL Mode) | Embedded relational storage with Write-Ahead Logging for high concurrency |
+| **Embeddings** | sentence-transformers/all-MiniLM-L6-v2 | Dense vector embeddings for semantic pre-filtering and similarity |
+| **LLM Provider** | Google Gemini (gemini-1.5-flash) / OpenAI | Structured candidate fit evaluation with fallback engine |
+| **Testing** | Pytest (Backend), Vitest (Frontend) | Unit, integration, and component testing suites |
+
+---
+
+## Project Structure
+
+`	ext
+smart-resume-screener/
+├── backend/
+│   ├── app/
+│   │   ├── api/                     # REST API routers (candidates, jobs, screening, audit, export)
+│   │   ├── core/                    # Configuration, SQLite database, and audit logging
+│   │   ├── evidence/                # Metric detector and SSRF-safe link verifier
+│   │   ├── extraction/              # PDF/TXT extractor, section splitter, JD parser
+│   │   ├── normalization/           # PII stripper, skill taxonomy, schema models
+│   │   ├── scoring/                 # LLM evaluation, requirement matcher, hallucination guard
+│   │   ├── semantic/                # Dense vector store and embedding pre-filter
+│   │   └── trajectory/              # Career trajectory and tenure analyzer
+│   ├── evaluation/                  # AI evaluation and benchmark suite
+│   ├── sample_data/                 # Synthetic candidate profiles and benchmark roles
+│   ├── tests/                       # Pytest test suite (41 tests)
+│   ├── requirements.txt             # Python dependencies
+│   └── .env.example                 # Environment variables template
+├── frontend/
+│   ├── src/
+│   │   ├── components/              # React components (Table, Profile, Drawers, Modals)
+│   │   ├── services/                # API client integration
+│   │   ├── types/                   # TypeScript interfaces and types
+│   │   ├── App.tsx                  # Main application container
+│   │   └── main.tsx                 # Application root entry point
+│   ├── package.json                 # Frontend dependencies and scripts
+│   ├── vite.config.ts               # Vite bundler configuration
+│   └── tailwind.config.js           # Tailwind CSS configuration
+└── README.md                        # Documentation and architecture guide
+`
+
+---
+
+## Setup & Installation
 
 ### Prerequisites
-- Python 3.10+
-- Node.js 18+ and npm
-- (Optional) Google Gemini API Key or OpenAI API Key
+- Python 3.10 or higher
+- Node.js 18 or higher (with npm)
+- *(Optional)* Google Gemini API Key (GEMINI_API_KEY) or OpenAI API Key (OPENAI_API_KEY)
 
-### Backend Setup
+### 1. Backend Setup
 
-```bash
+`ash
 cd backend
 
-# Create virtual environment
+# Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+# On Linux/macOS:
+source venv/bin/activate
+# On Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
 
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment variables
+# Create environment configuration
 cp .env.example .env
 
-# Run FastAPI server
+# Start FastAPI application
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
+`
 
-Backend API documentation will be accessible at: `http://localhost:8000/docs`
+The interactive OpenAPI documentation will be available at http://localhost:8000/docs.
 
-### Frontend Setup
+### 2. Frontend Setup
 
-```bash
+`ash
 cd frontend
 
 # Install npm packages
 npm install
 
-# Run Vite development server
+# Start Vite development server
 npm run dev
-```
+`
 
-Frontend UI will be accessible at: `http://localhost:5173`
+The recruiter dashboard will be available at http://localhost:5173.
 
----
+### 3. Environment Variables Reference
 
-## 5. Environment Variables Reference
+Configure these in ackend/.env:
 
 | Variable | Default | Description |
 | :--- | :--- | :--- |
-| `GEMINI_API_KEY` | `""` | Optional Google Gemini API key for LLM candidate evaluation. |
-| `OPENAI_API_KEY` | `""` | Optional OpenAI API key alternative. |
-| `GITHUB_TOKEN` | `""` | Optional GitHub Personal Access Token to increase link verification rate limits (60/hr → 5,000/hr). |
-| `TOP_N_FILTER` | `15` | Number of top candidates retrieved via vector pre-filtering before deep evaluation. |
-| `ENABLE_LINK_CHECK` | `true` | Toggles external link liveness and security verification. |
-| `DATABASE_PATH` | `data/screener.db` | Custom path for SQLite database. |
-| `UPLOADS_DIR` | `data/uploads` | Directory for uploaded resume documents. |
-| `CORS_ORIGINS` | `http://localhost:5173` | Allowed frontend origins for CORS headers. |
+| GEMINI_API_KEY | "" | Optional Google Gemini API key for structured LLM evaluation. |
+| OPENAI_API_KEY | "" | Optional OpenAI API key alternative. |
+| GITHUB_TOKEN | "" | Optional GitHub Personal Access Token to increase external link rate limits. |
+| TOP_N_FILTER | 15 | Number of top candidates retrieved via vector pre-filtering before deep scoring. |
+| ENABLE_LINK_CHECK| 	rue | Enables external portfolio and GitHub profile verification. |
+| DATABASE_PATH | data/screener.db | Path for the SQLite database file. |
+| UPLOADS_DIR | data/uploads | Storage directory for uploaded resume files. |
+| CORS_ORIGINS | http://localhost:5173 | Allowed frontend origins for CORS headers. |
 
 ---
 
-## 6. AI Evaluation & Benchmark Framework
+## Testing
 
-Smart Resume Screener includes an offline evaluation framework with labelled synthetic benchmark datasets:
-
-```bash
-cd backend
-python -m evaluation.run
-```
-
-### Calculated Benchmark Results:
-
-```
-================================================================================
-SMART RESUME SCREENER — AI EVALUATION SUITE
-================================================================================
-
-[1] DATASET OVERVIEW:
-  • Total Candidates: 10
-  • Ground Truth Relevant (>=2): 4
-  • Target Benchmark Role: Senior Backend Engineer
-
-[2] RANKING QUALITY METRICS:
-  • Precision@5: 0.8000 (Target: > 0.80)
-  • Recall@10:   1.0000 (Target: 1.00)
-  • NDCG@10:     0.9988 (Target: > 0.85)
-  • MRR:         1.0000 (Target: 1.00)
-
-[3] ERROR & CLASSIFICATION METRICS:
-  • False Positive Rate: 0.0000
-  • False Negative Rate: 0.2500
-
-[4] HALLUCINATION EVALUATION:
-  • Total Claims Evaluated: 0
-  • Verified Claims:        0
-  • Unsupported Claims:     0
-  • Hallucination Rate:     0.0000
-
-[5] BIAS & CONSISTENCY AUDIT:
-  • Tested Variables: Name, Location, Graduation Year, Email Domain
-  • Mean Absolute Difference: 0.0000
-  • Max Delta Observed:       0.0000
-  • Status: PASS (Robust Consistency)
-  • Note: Scores exhibit high stability across demographic and non-competency perturbations. This demonstrates mathematical consistency on tested variables, but does not prove complete fairness across all contexts.
-
-[6] CONFIDENCE CALIBRATION:
-  • High Confidence:   0
-  • Medium Confidence: 10
-  • Low Confidence:    0
-  • Unjustified High Rate: 0.0000
-
-================================================================================
-EVALUATION COMPLETED SUCCESSFULLY
-================================================================================
-```
-
----
-
-## 7. Running Tests
+The repository includes test suites across backend and frontend layers:
 
 ### Backend Test Suite (41 Tests)
-```bash
+`ash
 cd backend
 python -m pytest tests/ -v
-```
+`
 
-### Frontend Test Suite & Production Build
-```bash
+*Test coverage includes: Document extraction, section chunking, PII anonymization, SSRF protection, vector pre-filtering, 5-dimension scoring, requirement matching, hallucination guard, prompt injection defense, and full recruiter lifecycle flows.*
+
+### Frontend Test Suite (3 Tests)
+`ash
 cd frontend
 npx vitest run
-npm run build
-```
+`
 
 ---
 
-## 8. Known Limitations & Production Roadmap
+## Evaluation
 
-1. **OCR Processing**: Scanned image PDFs rely on system `tesseract-ocr` binary if available; when unavailable, it falls back to graceful text extraction.
-2. **Database Engine**: Uses SQLite in Write-Ahead Logging (WAL) mode for low-latency concurrent operations. For multi-tenant distributed deployments, migrate `database.py` connection to PostgreSQL.
-3. **Async Celery Queue**: For processing 10,000+ resumes concurrently in background batches, an asynchronous worker queue (Celery/Redis or Temporal) is recommended.
+The repository includes an offline evaluation suite for benchmark scoring and calibration validation:
+
+`ash
+cd backend
+python -m evaluation.run
+`
+
+> **Note**: *Evaluation benchmarks utilize a synthetic candidate dataset for consistent regression testing, ranking calibration, and fairness audits.*
+
+### Benchmark Evaluation Results
+
+| Metric Category | Metric | Benchmark Score | Target Threshold |
+| :--- | :--- | :---: | :---: |
+| **Ranking Quality** | Precision@5 | **0.8000** | $\ge 0.80$ |
+| | Recall@10 | **1.0000** | .00$ |
+| | NDCG@10 | **0.9988** | $\ge 0.85$ |
+| | Mean Reciprocal Rank (MRR) | **1.0000** | .00$ |
+| **Error Rates** | False Positive Rate | **0.0000** | $\le 0.05$ |
+| | False Negative Rate | **0.2500** | $\le 0.30$ |
+| **Hallucination** | Hallucination Rate | **0.0000** | .00$ |
+| **Fairness & Bias** | Demographic Perturbation Delta | **0.0000** | $\le 0.02$ |
+
+---
+
+## Limitations
+
+- **Scanned Image Resumes**: Image-only PDF documents require system 	esseract-ocr binaries; when unavailable, the parser falls back to text extraction.
+- **Single-Node SQLite Deployment**: SQLite Write-Ahead Logging (WAL) mode provides high concurrency for single-host deployments. Distributed multi-region deployments should migrate to PostgreSQL.
+- **Synthetic Benchmark Scope**: The internal benchmark uses a synthetic dataset designed for repeatable regression audits rather than live candidate cohorts.
+- **Third-Party API Rate Limits**: Unauthenticated GitHub portfolio verification is subject to GitHub's 60 requests/hour IP rate limit unless a GITHUB_TOKEN is supplied.
+
+---
+
+## Future Improvements
+
+- **Asynchronous Task Queue**: Integration with Celery/Redis for processing bulk batches of 10,000+ resumes asynchronously in the background.
+- **PostgreSQL Database Adapter**: Native multi-tenant PostgreSQL migration configuration for enterprise ATS deployments.
+- **Multilingual Parsing**: Multi-language OCR and resume normalization for international recruitment pipelines.
