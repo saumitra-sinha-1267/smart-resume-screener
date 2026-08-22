@@ -62,7 +62,13 @@ def match_candidate_to_requirements(candidate: CandidateData, job: JobData) -> L
             req_years = float(exp_match.group(1)) if exp_match else job.min_experience_years
             actual_years = candidate.total_experience_years
 
-            if actual_years >= req_years:
+            if req_years == 0.0 or job.min_experience_years == 0.0:
+                status = "MATCHED"
+                strength = "STRONG"
+                reasoning = f"Candidate profile ({actual_years} yrs verified) satisfies entry-level / 0+ years requirement."
+                if candidate.experience:
+                    evidence_quotes.append(f"{candidate.experience[0].title} ({actual_years} yrs)")
+            elif actual_years >= req_years:
                 status = "MATCHED"
                 strength = "STRONG" if actual_years >= req_years + 2 else "MEDIUM"
                 reasoning = f"Verified {actual_years} years of relevant experience, satisfying the {req_years} years minimum."
@@ -93,29 +99,49 @@ def match_candidate_to_requirements(candidate: CandidateData, job: JobData) -> L
                         break
 
             found_item = cand_skill_map.get(target_skill.lower()) if target_skill else None
+            
+            # Special skill synonym/sub-skill mapping for Data Visualization & Analytics
+            sub_skills = []
+            if target_skill.lower() in ["data visualization", "data visualisation", "visualization"]:
+                sub_skills = ["plotly", "power bi", "tableau", "matplotlib", "seaborn", "streamlit"]
+            elif target_skill.lower() in ["statistics", "statistical analysis"]:
+                sub_skills = ["hypothesis testing", "regression", "a/b testing", "statistical modeling", "anova"]
+            elif target_skill.lower() in ["sql"]:
+                sub_skills = ["mysql", "postgresql", "sqlite", "sql server"]
+
+            matched_sub_items = [cand_skill_map[s] for s in sub_skills if s in cand_skill_map]
+
             # Also check text mentions
             matched_bullets = []
             if target_skill:
                 for b, b_str in bullet_records:
-                    if target_skill.lower() in b.lower():
+                    if target_skill.lower() in b.lower() or any(s in b.lower() for s in sub_skills):
                         matched_bullets.append((b, b_str))
 
-            if found_item and found_item.source == "inferred_from_bullet":
-                status = "INFERRED"
-                strength = found_item.evidence_strength
-                reasoning = f"Inferred '{target_skill}' from candidate action statements."
-                if matched_bullets:
-                    evidence_quotes.extend([m[0] for m in matched_bullets[:2]])
-            elif found_item or (target_skill and target_skill.lower() in cand_text_lower):
+            if (found_item and found_item.source != "inferred_from_bullet") or (target_skill and target_skill.lower() in cand_text_lower):
                 status = "MATCHED"
                 if matched_bullets:
                     best_strength = "STRONG" if any(m[1] == "STRONG" for m in matched_bullets) else "MEDIUM"
                     strength = best_strength
                     evidence_quotes.extend([m[0] for m in matched_bullets[:2]])
-                    reasoning = f"Explicitly verified expertise in '{target_skill}' backed by {len(matched_bullets)} work bullet(s)."
+                    reasoning = f"Explicitly verified expertise in '{target_skill}' backed by {len(matched_bullets)} work/project bullet(s)."
                 else:
                     strength = "MEDIUM"
                     reasoning = f"Skill '{target_skill}' listed in technical credentials."
+            elif matched_sub_items:
+                # E.g. Candidate has Plotly/Streamlit for Data Visualization
+                status = "MATCHED" if len(matched_sub_items) >= 2 else "PARTIAL"
+                strength = "MEDIUM"
+                sub_names = ", ".join([s.name for s in matched_sub_items])
+                reasoning = f"Evidenced via supporting tooling: {sub_names}."
+                if matched_bullets:
+                    evidence_quotes.extend([m[0] for m in matched_bullets[:2]])
+            elif found_item and found_item.source == "inferred_from_bullet":
+                status = "PARTIAL"
+                strength = found_item.evidence_strength if found_item.evidence_strength != "NONE" else "WEAK"
+                reasoning = f"Indirectly supported: inferred '{target_skill}' from candidate project/experience statements."
+                if matched_bullets:
+                    evidence_quotes.extend([m[0] for m in matched_bullets[:2]])
             else:
                 status = "MISSING"
                 strength = "NONE"
@@ -125,13 +151,12 @@ def match_candidate_to_requirements(candidate: CandidateData, job: JobData) -> L
         elif req_cat == "education":
             if candidate.education:
                 edu_text = candidate.education[0].degree
-                status = "MATCHED"
-                strength = "MEDIUM"
-                reasoning = f"Holds relevant credential: {edu_text}."
+                from app.normalization.taxonomy import classify_degree_alignment
+                status, strength, reasoning = classify_degree_alignment(edu_text)
                 evidence_quotes.append(edu_text)
             else:
-                status = "PARTIAL"
-                strength = "WEAK"
+                status = "MISSING"
+                strength = "NONE"
                 reasoning = "Degree credential masked or unlisted."
 
         # 4. Domain & Leadership Requirements

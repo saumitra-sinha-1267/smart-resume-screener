@@ -93,31 +93,88 @@ def parse_external_links(text: str) -> List[ExternalLinkItem]:
                 links.append(ExternalLinkItem(url=u_clean, link_type=l_type, verified=False))
     return links
 
+MONTH_MAP = {
+    "jan": 1, "january": 1, "feb": 2, "february": 2, "mar": 3, "march": 3,
+    "apr": 4, "april": 4, "may": 5, "jun": 6, "june": 6, "jul": 7, "july": 7,
+    "aug": 8, "august": 8, "sep": 9, "september": 9, "oct": 10, "october": 10,
+    "nov": 11, "november": 11, "dec": 12, "december": 12
+}
+
+def parse_date_str(d_str: str) -> Tuple[Optional[int], Optional[int]]:
+    """Returns (year, month) from date string."""
+    if not d_str:
+        return None, None
+    s = d_str.strip().lower()
+    yr = None
+    mo = None
+    
+    m_yr = re.search(r"\b(19|20\d{2})\b", s)
+    if m_yr:
+        yr = int(m_yr.group(0))
+        
+    for m_name, m_num in MONTH_MAP.items():
+        if re.search(r"\b" + m_name + r"\b", s):
+            mo = m_num
+            break
+    if not mo:
+        # Check digit month e.g. 06/2023
+        m_dig = re.search(r"\b(0?[1-9]|1[0-2])[\/\.-]\b", s)
+        if m_dig:
+            mo = int(m_dig.group(1))
+            
+    return yr, mo
+
+def calculate_duration_years(start_str: str, end_str: str) -> float:
+    """Calculates realistic tenure duration in years from start and end dates."""
+    start_yr, start_mo = parse_date_str(start_str)
+    if not start_yr:
+        return 0.0
+
+    is_present = any(p in (end_str or "").lower() for p in ["present", "current", "now", "ongoing"])
+    if is_present:
+        end_yr, end_mo = 2026, 8
+    else:
+        end_yr, end_mo = parse_date_str(end_str)
+        if not end_yr:
+            end_yr = start_yr
+            end_mo = start_mo or 12
+
+    if start_mo and end_mo:
+        months = (end_yr - start_yr) * 12 + (end_mo - start_mo) + 1
+        return max(0.1, round(months / 12.0, 1))
+    else:
+        if end_yr > start_yr:
+            return round(float(end_yr - start_yr), 1)
+        elif end_yr == start_yr:
+            return 0.5
+        else:
+            return 0.0
+
 def parse_experience_blocks(exp_text: str) -> List[ExperienceItem]:
-    if not exp_text:
+    if not exp_text or len(exp_text.strip()) < 10:
         return []
     items: List[ExperienceItem] = []
-    lines = exp_text.splitlines()
-    current_title = "Software Engineer"
-    current_company = "Tech Company"
-    current_start = "2021-01"
-    current_end = "Present"
+    lines = [l.strip() for l in exp_text.splitlines() if l.strip()]
+    current_title = "Experience Role"
+    current_company = "Organization"
+    current_start = ""
+    current_end = ""
     current_bullets_text = []
-    date_pat = r"((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December|\d{1,2})?\s*\b(19|20)\d{2}\b)\s*(?:-|–|to)\s*((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December|\d{1,2})?\s*\b(19|20)\d{2}\b|Present|Current)"
+    date_pat = r"((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December|\d{1,2})?\s*[\/\.-]?\s*\b(19|20)\d{2}\b)\s*(?:-|–|—|to)\s*((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|January|February|March|April|May|June|July|August|September|October|November|December|\d{1,2})?\s*[\/\.-]?\s*\b(19|20)\d{2}\b|Present|Current|Now)"
 
     for line in lines:
         d_match = re.search(date_pat, line, re.IGNORECASE)
         if d_match:
-            if current_bullets_text:
-                bullets = split_into_bullets("\n".join(current_bullets_text))
+            if current_bullets_text or current_start:
+                bullets = split_into_bullets("\n".join(current_bullets_text)) if current_bullets_text else []
                 skills = []
                 for b in bullets:
                     skills.extend(extract_explicit_skills(b))
                 items.append(ExperienceItem(
                     title=current_title,
                     company=current_company,
-                    start_date=current_start,
-                    end_date=current_end,
+                    start_date=current_start or "Unspecified",
+                    end_date=current_end or "Unspecified",
                     bullets=bullets,
                     extracted_skills=sorted(list(set(skills)))
                 ))
@@ -126,22 +183,25 @@ def parse_experience_blocks(exp_text: str) -> List[ExperienceItem]:
             parts = [p.strip() for p in re.split(r"[|•\-@,]", line_without_date) if p.strip()]
             if parts:
                 current_title = parts[0]
-                current_company = parts[1] if len(parts) > 1 else "Tech Company"
+                current_company = parts[1] if len(parts) > 1 else "Organization"
+            else:
+                current_title = "Role"
+                current_company = "Organization"
             current_start = d_match.group(1).strip()
             current_end = d_match.group(3).strip()
         else:
             current_bullets_text.append(line)
 
-    if current_bullets_text:
-        bullets = split_into_bullets("\n".join(current_bullets_text))
+    if current_bullets_text or current_start:
+        bullets = split_into_bullets("\n".join(current_bullets_text)) if current_bullets_text else []
         skills = []
         for b in bullets:
             skills.extend(extract_explicit_skills(b))
         items.append(ExperienceItem(
             title=current_title,
             company=current_company,
-            start_date=current_start,
-            end_date=current_end,
+            start_date=current_start or "Unspecified",
+            end_date=current_end or "Unspecified",
             bullets=bullets,
             extracted_skills=sorted(list(set(skills)))
         ))
@@ -152,7 +212,7 @@ def parse_education_blocks(edu_text: str) -> List[EducationItem]:
         return []
     items: List[EducationItem] = []
     lines = edu_text.splitlines()
-    degree_pats = [r"B\.?S\.?|B\.?Tech|Bachelor|Master|M\.?S\.?|Ph\.?D|Associate|Diploma"]
+    degree_pats = [r"B\.?S\.?|B\.?Tech|B\.?E\.?|Bachelor|Master|M\.?S\.?|M\.?Tech|Ph\.?D|Associate|Diploma"]
     for line in lines:
         for p in degree_pats:
             if re.search(p, line, re.IGNORECASE):
@@ -182,6 +242,10 @@ def parse_resume_to_candidate(raw_text: str, filename: str = "") -> CandidateDat
 
     for exp in experience:
         for b in exp.bullets:
+            exp_s = extract_explicit_skills(b)
+            for s in exp_s:
+                if s not in skills_map or skills_map[s].source == "inferred_from_bullet":
+                    skills_map[s] = SkillItem(name=s, source="experience_mention", original_text=b, quantified_evidence=False)
             inferred = infer_skills_from_bullet(b)
             for inf_s, reason in inferred:
                 if inf_s not in skills_map:
@@ -191,26 +255,15 @@ def parse_resume_to_candidate(raw_text: str, filename: str = "") -> CandidateDat
                         original_text=b,
                         quantified_evidence=False
                     )
-            exp_s = extract_explicit_skills(b)
-            for s in exp_s:
-                if s not in skills_map:
-                    skills_map[s] = SkillItem(name=s, source="experience_mention", original_text=b, quantified_evidence=False)
 
+    # Calculate strictly verified experience years (0.0 if no verified dates)
     total_years = 0.0
     for exp in experience:
-        start_yr = None
-        end_yr = 2026
-        m_start = re.search(r"\b(19|20\d{2})\b", exp.start_date or "")
-        if m_start:
-            start_yr = int(m_start.group(0))
-        if exp.end_date and "present" not in exp.end_date.lower() and "current" not in exp.end_date.lower():
-            m_end = re.search(r"\b(19|20\d{2})\b", exp.end_date)
-            if m_end:
-                end_yr = int(m_end.group(0))
-        if start_yr:
-            total_years += max(1.0, float(end_yr - start_yr))
+        if exp.start_date and exp.start_date != "Unspecified":
+            dur = calculate_duration_years(exp.start_date, exp.end_date)
+            total_years += dur
 
-    total_exp = total_years if total_years > 0 else max(1.0, len(experience) * 2.0)
+    total_exp = round(total_years, 1)
 
     return CandidateData(
         candidate_id=candidate_id,
@@ -222,6 +275,6 @@ def parse_resume_to_candidate(raw_text: str, filename: str = "") -> CandidateDat
         experience=experience,
         education=education,
         external_links=links,
-        total_experience_years=round(total_exp, 1),
+        total_experience_years=total_exp,
         raw_text=raw_text
     )

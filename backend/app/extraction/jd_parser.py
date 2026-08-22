@@ -5,8 +5,13 @@ from app.normalization.schema_models import JobData, JobRequirement
 from app.normalization.taxonomy import SKILL_SYNONYMS, extract_explicit_skills
 
 SENIORITY_KEYWORDS = {
+    "fresher": "Entry-Level",
+    "intern": "Entry-Level",
+    "internship": "Entry-Level",
+    "entry": "Entry-Level",
+    "entry-level": "Entry-Level",
+    "graduate": "Entry-Level",
     "junior": "Junior",
-    "entry": "Junior",
     "associate": "Associate",
     "mid": "Mid-Level",
     "senior": "Senior",
@@ -21,8 +26,8 @@ SENIORITY_KEYWORDS = {
 }
 
 EDUCATION_PATTERNS = [
-    r"\b(?:bachelor'?s?|b\.s\.?|b\.a\.?|master'?s?|m\.s\.?|ph\.?d\.?|degree)\s+(?:in|of)?\s+[a-zA-Z\s]{3,30}\b",
-    r"\b(?:computer science|software engineering|information technology|electrical engineering|mathematics|data science)\b"
+    r"\b(?:bachelor'?s?|b\.s\.?|b\.a\.?|b\.tech|b\.e\.?|master'?s?|m\.s\.?|m\.tech|ph\.?d\.?|degree)\s+(?:in|of)?\s+[a-zA-Z\s]{3,30}\b",
+    r"\b(?:computer science|software engineering|information technology|electrical engineering|mathematics|data science|statistics)\b"
 ]
 
 CERTIFICATION_PATTERNS = [
@@ -32,7 +37,7 @@ CERTIFICATION_PATTERNS = [
 DOMAIN_KEYWORDS = [
     "fintech", "payments", "banking", "healthcare", "healthtech", "ecommerce", "e-commerce",
     "saas", "distributed systems", "cloud infrastructure", "cybersecurity", "ai/ml", "robotics",
-    "telecom", "adtech", "gaming", "automotive", "crypto", "blockchain"
+    "telecom", "adtech", "gaming", "automotive", "crypto", "blockchain", "analytics", "data analytics"
 ]
 
 def parse_job_description_text(raw_text: str, custom_title: Optional[str] = None) -> JobData:
@@ -75,8 +80,8 @@ def parse_job_description_text(raw_text: str, custom_title: Optional[str] = None
 
     # 3. Infer Department
     dept = "Engineering"
-    if any(k in raw_text.lower() for k in ["data science", "machine learning", "ai researcher"]):
-        dept = "Data & AI"
+    if any(k in raw_text.lower() for k in ["data science", "data analyst", "data analysis", "machine learning", "ai researcher"]):
+        dept = "Data & Analytics"
     elif any(k in raw_text.lower() for k in ["devops", "sre", "infrastructure", "platform engineer"]):
         dept = "Platform & Infrastructure"
     elif any(k in raw_text.lower() for k in ["product manager", "product design", "ui/ux"]):
@@ -86,22 +91,28 @@ def parse_job_description_text(raw_text: str, custom_title: Optional[str] = None
 
     # 4. Infer Minimum Experience Years
     min_exp = 0.0
-    exp_matches = re.findall(r"\b(\d+)(?:\s*-\s*\d+)?\+?\s*(?:years?|yrs?)(?:\s+of)?\s+(?:relevant\s+)?experience\b", raw_text, re.IGNORECASE)
-    if exp_matches:
-        try:
-            min_exp = float(exp_matches[0])
-        except Exception:
-            min_exp = 3.0
+    is_fresher = any(re.search(r"\b" + re.escape(w) + r"\b", raw_text.lower()) for w in ["fresher", "0 years", "0-1 years", "0+ years", "0 to 1 years", "no experience", "entry level", "entry-level", "intern", "internship", "graduate"])
+    if is_fresher or seniority == "Entry-Level":
+        min_exp = 0.0
     else:
-        # Default based on seniority
-        if seniority in ["Staff", "Principal", "Director", "VP"]:
-            min_exp = 8.0
-        elif seniority in ["Senior", "Lead", "Manager"]:
-            min_exp = 5.0
-        elif seniority in ["Junior", "Associate"]:
-            min_exp = 1.0
+        exp_matches = re.findall(r"\b(\d+)(?:\s*-\s*\d+)?\+?\s*(?:years?|yrs?)(?:\s+of)?\s+(?:relevant\s+)?experience\b", raw_text, re.IGNORECASE)
+        if exp_matches:
+            try:
+                min_exp = float(exp_matches[0])
+            except Exception:
+                min_exp = 3.0
         else:
-            min_exp = 3.0
+            # Default based on seniority
+            if seniority in ["Staff", "Principal", "Director", "VP"]:
+                min_exp = 8.0
+            elif seniority in ["Senior", "Lead", "Manager"]:
+                min_exp = 5.0
+            elif seniority in ["Junior", "Associate"]:
+                min_exp = 1.0
+            elif seniority == "Entry-Level":
+                min_exp = 0.0
+            else:
+                min_exp = 2.0
 
     # 5. Extract Skills by section (Required vs Preferred)
     raw_lower = raw_text.lower()
@@ -161,13 +172,22 @@ def parse_job_description_text(raw_text: str, custom_title: Optional[str] = None
     structured_requirements: List[JobRequirement] = []
 
     # Add experience requirement
-    structured_requirements.append(JobRequirement(
-        text=f"{min_exp}+ years of professional engineering experience",
-        category="experience",
-        weight=1.5,
-        required=True,
-        is_mandatory=True
-    ))
+    if min_exp == 0.0:
+        structured_requirements.append(JobRequirement(
+            text="Entry level / 0+ years professional experience",
+            category="experience",
+            weight=0.5,
+            required=False,
+            is_mandatory=False
+        ))
+    else:
+        structured_requirements.append(JobRequirement(
+            text=f"{min_exp}+ years of professional engineering experience",
+            category="experience",
+            weight=1.5,
+            required=True,
+            is_mandatory=True
+        ))
 
     # Add mandatory skills
     mandatory_req_strings = []

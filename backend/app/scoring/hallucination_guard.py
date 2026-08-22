@@ -59,6 +59,28 @@ def apply_hallucination_guard(score: ScoreOutput, candidate: CandidateData) -> S
                 if sk_lower in b.lower():
                     supporting_bullet = b
                     break
+        elif sk_lower in ["data visualization", "data visualisation", "visualization"]:
+            viz_tools = ["plotly", "power bi", "tableau", "matplotlib", "seaborn", "streamlit"]
+            for tool in viz_tools:
+                if tool in full_resume_text:
+                    is_verified = True
+                    for b in all_bullets:
+                        if tool in b.lower():
+                            supporting_bullet = b
+                            break
+                    if is_verified:
+                        break
+        elif sk_lower in ["statistics", "statistical analysis"]:
+            stat_tools = ["hypothesis testing", "regression", "a/b testing", "statistical modeling", "anova"]
+            for tool in stat_tools:
+                if tool in full_resume_text:
+                    is_verified = True
+                    for b in all_bullets:
+                        if tool in b.lower():
+                            supporting_bullet = b
+                            break
+                    if is_verified:
+                        break
         else:
             # Check canonical alias
             for alias, canonical in SKILL_SYNONYMS.items():
@@ -73,11 +95,24 @@ def apply_hallucination_guard(score: ScoreOutput, candidate: CandidateData) -> S
         if is_verified:
             verified_matched.append(skill)
             strength, _ = classify_evidence_quality(supporting_bullet) if supporting_bullet else ("MEDIUM", [])
+            
+            # Realistic confidence calibrated against evidence strength
+            if supporting_bullet:
+                if strength == "STRONG":
+                    conf_val = 0.95
+                elif strength == "MEDIUM":
+                    conf_val = 0.82
+                else:
+                    conf_val = 0.65
+            else:
+                strength = "MEDIUM"
+                conf_val = 0.75
+
             claim_verifications.append(ClaimVerification(
                 claim=f"Candidate possesses verified skill '{skill}'",
                 evidence=supporting_bullet or f"Explicitly evidenced in structured skills.",
                 verification_status="VERIFIED",
-                confidence=1.0,
+                confidence=conf_val,
                 evidence_strength=strength
             ))
         else:
@@ -89,9 +124,9 @@ def apply_hallucination_guard(score: ScoreOutput, candidate: CandidateData) -> S
             claim_verifications.append(ClaimVerification(
                 claim=f"Candidate possesses skill '{skill}'",
                 evidence="No textual evidence found in resume body.",
-                verification_status="UNVERIFIED_PENALIZED",
+                verification_status="UNCONFIRMED",
                 confidence=0.0,
-                evidence_strength="WEAK"
+                evidence_strength="NONE"
             ))
 
     score.verified_claims = claim_verifications

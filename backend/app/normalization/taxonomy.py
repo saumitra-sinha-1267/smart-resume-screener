@@ -161,6 +161,25 @@ SKILL_SYNONYMS: Dict[str, str] = {
     "pyspark": "Apache Spark",
     "airflow": "Apache Airflow",
     "dbt": "dbt",
+    "statistics": "Statistics",
+    "statistical analysis": "Statistics",
+    "statistical modeling": "Statistics",
+    "stats": "Statistics",
+    "data visualization": "Data Visualization",
+    "data visualisation": "Data Visualization",
+    "visualization": "Data Visualization",
+    "dataviz": "Data Visualization",
+    "matplotlib": "Matplotlib",
+    "seaborn": "Seaborn",
+    "plotly": "Plotly",
+    "tableau": "Tableau",
+    "power bi": "Power BI",
+    "powerbi": "Power BI",
+    "streamlit": "Streamlit",
+    "excel": "Microsoft Excel",
+    "data analysis": "Data Analysis",
+    "exploratory data analysis": "Exploratory Data Analysis",
+    "eda": "Exploratory Data Analysis",
     
     # Leadership & Soft Skills
     "leadership": "Team Leadership",
@@ -229,8 +248,52 @@ BULLET_ACTION_PATTERNS: List[Tuple[str, str, str]] = [
         r"\b(indexed|sharded|partitioned|database\s+optimization|slow\s+queries|normalized)\b",
         "Database Optimization",
         "Engineered database tuning and indexing strategies"
+    ),
+    (
+        r"\b(visualized|dashboard|dashboards|plotly|tableau|power\s*bi|matplotlib|seaborn|streamlit|interactive\s+charts|plots)\b",
+        "Data Visualization",
+        "Engineered visual dashboards and reporting tools"
+    ),
+    (
+        r"\b(hypothesis\s+testing|statistical|regression\s+analysis|p-value|a/b\s+test|significance|variance|anova)\b",
+        "Statistics",
+        "Applied statistical modeling or hypothesis testing"
     )
 ]
+
+# Academic degree disciplines mapping
+EXACT_DEGREE_FIELDS = [
+    r"\b(?:computer\s+science|software\s+engineering|data\s+science|artificial\s+intelligence|machine\s+learning|information\s+technology|statistics|mathematics|applied\s+mathematics)\b",
+    r"\b(?:cs|it|cse|ai|ds)\b"
+]
+
+RELATED_DEGREE_FIELDS = [
+    r"\b(?:electronics|electrical|ece|eee|telecommunication|information\s+systems|physics|computational\s+biology|mechanical|civil|chemical|engineering)\b",
+    r"\b(?:b\.?tech|b\.?e\.?|m\.?tech|m\.?e\.?)\b"
+]
+
+def classify_degree_alignment(degree_text: str) -> Tuple[str, str, str]:
+    """
+    Evaluates degree relevance against STEM / CS requirements.
+    Returns (status: 'MATCHED' | 'PARTIAL' | 'MISSING', strength: 'STRONG' | 'MEDIUM' | 'WEAK' | 'NONE', reasoning: str)
+    """
+    if not degree_text or degree_text.strip().lower() in ["", "not specified", "unlisted"]:
+        return "MISSING", "NONE", "No academic degree credential evidenced in resume."
+
+    deg_lower = degree_text.lower()
+
+    # Exact Match Check
+    for pat in EXACT_DEGREE_FIELDS:
+        if re.search(pat, deg_lower):
+            return "MATCHED", "STRONG", f"Exact academic discipline match: {degree_text} satisfies core requirements."
+
+    # Related Technical Field Check (e.g. ECE / Electronics / Electrical / General Engineering)
+    for pat in RELATED_DEGREE_FIELDS:
+        if re.search(pat, deg_lower):
+            return "PARTIAL", "MEDIUM", f"Related technical engineering discipline: {degree_text} partially aligns with core requirements."
+
+    # Non-technical / general field
+    return "PARTIAL", "WEAK", f"Degree listed ({degree_text}) does not directly match core computing/data disciplines."
 
 def normalize_skill(skill_raw: str) -> str:
     cleaned = skill_raw.strip().lower()

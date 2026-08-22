@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import httpx
 import asyncio
@@ -69,6 +70,9 @@ def deterministic_calibrated_scoring(candidate: CandidateData, job: JobData) -> 
     soft_score = round((len(matched_soft) / max(1, len(soft_reqs))) * 10.0, 1) if soft_reqs else 8.0
 
     # 4. Skills Match Dimension
+    cand_skill_map = {s.name.lower(): s for s in candidate.skills}
+    cand_text_l = (candidate.raw_text or "").lower()
+
     req_skills = job.required_skills or []
     pref_skills = job.preferred_skills or []
 
@@ -76,60 +80,83 @@ def deterministic_calibrated_scoring(candidate: CandidateData, job: JobData) -> 
     missing: List[str] = []
     inferred: List[str] = []
 
+    # Map requirement matches for quick lookup
+    matched_req_skills = set()
+    for rm in req_matches:
+        if rm.category == "skill" and rm.status in ["MATCHED", "INFERRED"]:
+            for s in req_skills + pref_skills:
+                if s.lower() in rm.text.lower() or s.lower() in rm.reasoning.lower():
+                    matched_req_skills.add(s)
+
     for req in req_skills:
         req_l = req.lower()
-        if req_l in cand_skill_names:
-            matched.append(req)
-            if cand_skill_names[req_l].source == "inferred_from_bullet":
+        if req in matched_req_skills or req_l in cand_skill_map or req_l in cand_text_l:
+            if req not in matched:
+                matched.append(req)
+            if cand_skill_map.get(req_l) and cand_skill_map[req_l].source == "inferred_from_bullet":
                 inferred.append(req)
-        elif req_l in (candidate.raw_text or "").lower():
-            matched.append(req)
         else:
-            missing.append(req)
+            if req not in missing:
+                missing.append(req)
 
     for pref in pref_skills:
         pref_l = pref.lower()
-        if pref_l in cand_skill_names or pref_l in (candidate.raw_text or "").lower():
+        if pref in matched_req_skills or pref_l in cand_skill_map or pref_l in cand_text_l:
             if pref not in matched:
                 matched.append(pref)
 
-    for s in candidate.skills:
-        if s.source == "inferred_from_bullet" and s.name not in matched:
-            inferred.append(s.name)
-
-    total_req = max(1, len(req_skills))
-    matched_req_count = sum(1 for r in req_skills if r in matched)
-    skills_base = (matched_req_count / total_req) * 8.5
-    pref_bonus = min(1.5, len([p for p in pref_skills if p in matched]) * 0.5)
+    total_mand_count = max(1, len(req_skills)) if req_skills else 1
+    matched_mand_count = sum(1 for r in req_skills if r in matched)
+    skills_base = (matched_mand_count / total_mand_count) * 8.5
+    pref_bonus = min(1.5, sum(1 for p in pref_skills if p in matched) * 0.5)
     skills_score = min(10.0, round(skills_base + pref_bonus, 1))
 
     # 5. Experience Relevance Dimension
     exp_years = candidate.total_experience_years
     min_years = job.min_experience_years
-    if exp_years >= min_years:
+    if min_years == 0.0:
+        exp_score = 9.0
+        if exp_years == 0.0:
+            exp_reasoning = "Entry-level / Fresher profile satisfies 0+ years experience requirement."
+        else:
+            exp_reasoning = f"Candidate brings {exp_years} years verified experience, meeting entry-level specifications."
+    elif exp_years >= min_years:
         exp_score = min(10.0, 7.5 + min(2.5, (exp_years - min_years) * 0.5))
         exp_reasoning = f"Candidate brings {exp_years} years of relevant experience, meeting the required {min_years} years minimum."
-    else:
+    elif exp_years > 0.0:
         exp_score = max(3.0, round((exp_years / max(1.0, min_years)) * 7.0, 1))
         exp_reasoning = f"Candidate has {exp_years} years of experience, below the requested {min_years} years minimum."
+    else:
+        exp_score = 2.0
+        exp_reasoning = f"Experience duration could not be fully verified from the resume (0.0 yrs vs {min_years} yrs required)."
 
     # 6. Evidence Quality Dimension (Strong vs Medium vs Weak)
     strong_evidence_count = sum(1 for s in candidate.skills if s.evidence_strength == "STRONG" or s.quantified_evidence)
     evidence_score_val = min(10.0, 6.0 + (strong_evidence_count * 1.0))
     evidence_reasoning = f"Demonstrated {strong_evidence_count} quantified outcome metrics and technical implementation proofs."
 
-    # 7. Education Fit Dimension
-    has_degree = len(candidate.education) > 0
-    edu_score = 8.5 if has_degree else 6.5
-    edu_reasoning = f"Possesses relevant degree credentials: {candidate.education[0].degree}." if has_degree else "Assessed practical industry experience in lieu of explicit degree specification."
+    # 7. Education Fit Dimension (Discipline-Aware)
+    edu_matches = [r for r in req_matches if r.category == "education"]
+    if edu_matches:
+        em = edu_matches[0]
+        edu_score = 9.0 if em.status == "MATCHED" else (7.0 if em.status == "PARTIAL" else 4.0)
+        edu_reasoning = em.reasoning
+    elif candidate.education:
+        from app.normalization.taxonomy import classify_degree_alignment
+        st, _, rz = classify_degree_alignment(candidate.education[0].degree)
+        edu_score = 9.0 if st == "MATCHED" else (7.0 if st == "PARTIAL" else 4.0)
+        edu_reasoning = rz
+    else:
+        edu_score = 5.0
+        edu_reasoning = "Academic credentials unlisted or masked."
 
     # 8. Seniority Alignment Dimension
     seniority_score = 8.0
     sen_reasoning = f"Seniority alignment matches {job.seniority or 'target'} profile specifications."
-    if exp_years < min_years * 0.7:
+    if min_years > 0.0 and exp_years < min_years * 0.7:
         seniority_score = 5.5
         sen_reasoning = "Seniority level is junior relative to target job specifications."
-    elif exp_years >= min_years + 3:
+    elif exp_years >= min_years + 3 and min_years > 0.0:
         seniority_score = 9.0
         sen_reasoning = "High seniority alignment with extensive tenure and domain leadership."
 
@@ -150,7 +177,7 @@ def deterministic_calibrated_scoring(candidate: CandidateData, job: JobData) -> 
     flags: List[str] = []
     if missing:
         flags.append(f"Missing required skills: {', '.join(missing[:3])}")
-    if exp_years < min_years:
+    if min_years > 0.0 and exp_years < min_years:
         flags.append(f"Experience gap: {exp_years} yrs vs {min_years} yrs required")
 
     # Prompt injection check
@@ -162,9 +189,23 @@ def deterministic_calibrated_scoring(candidate: CandidateData, job: JobData) -> 
     if trajectory.get("job_hopping_flag"):
         flags.append("Pattern of rapid job transitions detected (3+ roles under 8 months)")
 
-    summary = f"Scored {overall}/10 for {job.title}. Candidate matches {len(matched)} key skills with {exp_years} years verified experience."
+    # Mathematically Consistent Summary Justification
+    if req_skills:
+        summary = f"Scored {overall}/10 for {job.title}. Candidate matches {matched_mand_count} of {len(req_skills)} mandatory skills"
+    else:
+        summary = f"Scored {overall}/10 for {job.title}. Candidate matches {len(matched)} key skills"
+
+    if exp_years > 0.0:
+        summary += f" with {exp_years} years verified experience."
+    elif min_years == 0.0:
+        summary += " with an entry-level / fresher profile."
+    else:
+        summary += ". Experience duration could not be fully verified from the resume."
+
     if missing:
-        summary += f" Key missing area: {missing[0]}."
+        summary += f" Unconfirmed / missing: {', '.join(missing[:2])}."
+    if inferred:
+        summary += f" Partially evidenced: {', '.join(inferred[:2])}."
 
     return ScoreOutput(
         candidate_id=candidate.candidate_id,

@@ -124,9 +124,9 @@ class RequirementMatch(BaseModel):
 class ClaimVerification(BaseModel):
     claim: str
     evidence: str
-    verification_status: Literal["VERIFIED", "UNVERIFIED_PENALIZED", "INFERRED"]
+    verification_status: Literal["VERIFIED", "UNVERIFIED_PENALIZED", "INFERRED", "UNCONFIRMED"]
     confidence: float = 1.0
-    evidence_strength: Literal["STRONG", "MEDIUM", "WEAK"] = "MEDIUM"
+    evidence_strength: Literal["STRONG", "MEDIUM", "WEAK", "NONE"] = "MEDIUM"
 
 class SkillsMatchScore(BaseModel):
     score: float = Field(ge=0, le=10)
