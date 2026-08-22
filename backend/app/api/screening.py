@@ -41,7 +41,29 @@ async def run_screening_pipeline(
     vector_index = CandidateVectorIndex()
     prefiltered = vector_index.prefilter_top_candidates(job, all_candidates, top_n=top_n)
 
+    # Ensure job requirements are up-to-date with current JD parsing rules if min_exp is 0
+    if job.min_experience_years == 0.0:
+        for r in job.requirements:
+            if "3.0+ years" in r.text or "professional engineering experience" in r.text:
+                r.text = "Entry level / 0+ years professional experience"
+                r.is_mandatory = False
+                r.required = False
+
     async def evaluate_single_candidate(cand, rank, prefilter_score) -> ScreeningResult:
+        # Dynamically refresh candidate from raw_text using latest extraction logic
+        if cand.raw_text:
+            try:
+                from app.extraction.pdf_extractor import parse_resume_to_candidate
+                fresh_cand = parse_resume_to_candidate(cand.raw_text, cand.raw_name)
+                fresh_cand.candidate_id = cand.candidate_id
+                fresh_cand.status = cand.status
+                fresh_cand.anonymized_name = cand.anonymized_name
+                fresh_cand.created_at = cand.created_at
+                cand = fresh_cand
+                database.save_candidate(cand)
+            except Exception as parse_err:
+                logger.warning(f"Could not dynamic refresh candidate {cand.candidate_id}: {parse_err}")
+
         try:
             score = await score_candidate_with_llm(cand, job)
         except Exception as e:

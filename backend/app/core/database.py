@@ -79,6 +79,28 @@ def _init_tables_internal(conn: sqlite3.Connection):
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_candidate ON audit_logs(candidate_id, timestamp DESC);")
     conn.commit()
 
+    # Self-healing synchronization for existing stored candidate data
+    try:
+        cursor.execute("SELECT candidate_id, data_json FROM candidates")
+        cand_rows = cursor.fetchall()
+        for crow in cand_rows:
+            cdata = json.loads(crow["data_json"])
+            if cdata.get("raw_text"):
+                from app.extraction.pdf_extractor import parse_resume_to_candidate
+                fc = parse_resume_to_candidate(cdata["raw_text"], cdata.get("raw_name", ""))
+                fc.candidate_id = crow["candidate_id"]
+                fc.status = cdata.get("status", "NEW")
+                fc.anonymized_name = cdata.get("anonymized_name", fc.anonymized_name)
+                fc.raw_name = cdata.get("raw_name", fc.raw_name)
+                fc.created_at = cdata.get("created_at")
+                cursor.execute(
+                    "UPDATE candidates SET total_experience_years = ?, skills_count = ?, data_json = ? WHERE candidate_id = ?",
+                    (fc.total_experience_years, len(fc.skills), json.dumps(fc.model_dump(), ensure_ascii=False), crow["candidate_id"])
+                )
+        conn.commit()
+    except Exception:
+        pass
+
 def get_connection():
     conn = sqlite3.connect(settings.DB_PATH, timeout=20.0)
     conn.row_factory = sqlite3.Row
