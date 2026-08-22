@@ -9,7 +9,7 @@ Smart Resume Screener is an automated applicant tracking and resume screening sy
 - **Multi-Format Resume Parsing**: Ingests `.pdf` and `.txt` resumes with automated text extraction, section splitting, and bullet-point chunking.
 - **Structured Candidate Extraction**: Extracts candidate contact details, skills with taxonomy normalization, verified employment date ranges, and academic credentials.
 - **Job Description Intelligence**: Analyzes raw job descriptions to extract required skills, preferred skills, minimum experience thresholds, and categorized requirements (mandatory vs. preferred).
-- **Dense Semantic Retrieval**: Employs `sentence-transformers/aall-MiniLM-L6-v2` embeddings for sub-millisecond candidate-to-job semantic pre-filtering.
+- **Dense Semantic Retrieval**: Employs `sentence-transformers/all-MiniLM-L6-v2` embeddings for sub-millisecond candidate-to-job semantic pre-filtering.
 - **Multi-Dimension Calibrated Scoring**: Evaluates candidate fit across 5 weighted dimensions: Skills (30%), Experience (25%), Evidence Quality (20%), Seniority Alignment (15%), and Education Fit (10%).
 - **Hard vs. Soft Criteria Separation**: Differentiates non-negotiable mandatory qualifications from bonus preferred skills, preventing false-positive rankings.
 - **Claim-by-Claim Hallucination Guard**: Audits model-generated claims against ground-truth extracted resume text to penalize and flag unevidenced qualifications.
@@ -79,7 +79,7 @@ flowchart TD
     end
 
     subgraph Semantic ["Retrieval & Indexing"]
-        EMB["sentence-transformers/aall-MiniLM-L6-v2"]
+        EMB["sentence-transformers/all-MiniLM-L6-v2"]
         VEC["Candidate Vector Index (Cosine Similarity)"]
     end
 
@@ -121,7 +121,7 @@ flowchart TD
 1. **Frontend (React + Vite + TypeScript)**: Single-page application providing an ATS workspace with job selection, candidate management, dossier inspection, and blind-review controls.
 2. **Backend API (FastAPI)**: REST endpoints handling multipart file uploads, job parsing, screening orchestration, PII masking, and data export.
 3. **Extraction & Normalization Engine**: Extracts raw text from PDF/TXT documents, segments sections, chunks bullet points, normalizes skill aliases against a taxonomy, and calculates verified tenure.
-4. **Semantic Retrieval Index**: Local embedding pipeline (`aall-MiniLM-L6-v2`) generating dense vectors for candidate work bullets and pre-filtering candidates against job criteria.
+4. **Semantic Retrieval Index**: Local embedding pipeline (`all-MiniLM-L6-v2`) generating dense vectors for candidate work bullets and pre-filtering candidates against job criteria.
 5. **Multi-Dimension Scoring Engine**: Combines structured LLM evaluation with deterministic fallback scoring, hallucination checking, and confidence calibration.
 6. **SQLite Storage Engine (WAL Mode)**: Relational storage for candidates, job definitions, screening scores, and immutable audit logs.
 
@@ -144,7 +144,7 @@ The screening engine processes resumes through a 9-step evaluation pipeline:
 3. JD Intelligence ─────────► Requirement extraction (mandatory vs. preferred), experience thresholds
       │
       ▼
-4. Dense Vector Matching ───► aall-MiniLM-L6-v2 embedding & cosine pre-filtering (Top-N)
+4. Dense Vector Matching ───► all-MiniLM-L6-v2 embedding & cosine pre-filtering (Top-N)
       │
       ▼
 5. Multi-Dimension Scoring ─► 5-dimension evaluation (Skills, Experience, Evidence, Seniority, Education)
@@ -384,7 +384,7 @@ OUTPUT JSON:
 | **Backend** | FastAPI, Uvicorn, Python 3.10+ | High-performance asynchronous REST API framework |
 | **Data Validation** | Pydantic v2 | Type-safe request/response schema modeling and validation |
 | **Database** | SQLite (WAL Mode) | Embedded relational storage with Write-Ahead Logging for high concurrency |
-| **Embeddings** | `sentence-transformers/aall-MiniLM-L6-v2` | Dense vector embeddings for semantic pre-filtering and similarity |
+| **Embeddings** | `sentence-transformers/all-MiniLM-L6-v2` | Dense vector embeddings for semantic pre-filtering and similarity |
 | **LLM Provider** | Google Gemini (`gemini-1.5-flash`) / OpenAI | Structured candidate fit evaluation with fallback engine |
 | **Testing** | Pytest (Backend), Vitest (Frontend) | Unit, integration, and component testing suites |
 
