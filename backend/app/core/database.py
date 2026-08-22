@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import os
+import re
 import glob
 from datetime import datetime
 from typing import List, Optional, Dict, Any
@@ -78,28 +79,6 @@ def _init_tables_internal(conn: sqlite3.Connection):
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_jobs_created ON jobs(created_at DESC);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_audit_candidate ON audit_logs(candidate_id, timestamp DESC);")
     conn.commit()
-
-    # Self-healing synchronization for existing stored candidate data
-    try:
-        cursor.execute("SELECT candidate_id, data_json FROM candidates")
-        cand_rows = cursor.fetchall()
-        for crow in cand_rows:
-            cdata = json.loads(crow["data_json"])
-            if cdata.get("raw_text"):
-                from app.extraction.pdf_extractor import parse_resume_to_candidate
-                fc = parse_resume_to_candidate(cdata["raw_text"], cdata.get("raw_name", ""))
-                fc.candidate_id = crow["candidate_id"]
-                fc.status = cdata.get("status", "NEW")
-                fc.anonymized_name = cdata.get("anonymized_name", fc.anonymized_name)
-                fc.raw_name = cdata.get("raw_name", fc.raw_name)
-                fc.created_at = cdata.get("created_at")
-                cursor.execute(
-                    "UPDATE candidates SET total_experience_years = ?, skills_count = ?, data_json = ? WHERE candidate_id = ?",
-                    (fc.total_experience_years, len(fc.skills), json.dumps(fc.model_dump(), ensure_ascii=False), crow["candidate_id"])
-                )
-        conn.commit()
-    except Exception:
-        pass
 
 def get_connection():
     conn = sqlite3.connect(settings.DB_PATH, timeout=20.0)
@@ -343,20 +322,39 @@ def compare_candidates_for_job(candidate_ids: List[str], job_id: str) -> Candida
         mand_matched_count = len([r for r in mand_matches if r.status in ["MATCHED", "INFERRED"]])
         strong_ev_count = sum(1 for s in cand.skills if s.evidence_strength == "STRONG" or s.quantified_evidence)
 
-        # Build strengths and gaps
+        # Build strengths and gaps dynamically from requirement matrix
         strengths = []
         gaps = []
         if sc:
-            if sc.skills_match.matched:
+            req_matches = sc.requirement_matches or []
+            mand_skills = [r for r in req_matches if r.category == "skill" and r.is_mandatory]
+            matched_mand = [r for r in mand_skills if r.status in ["MATCHED", "INFERRED"]]
+            pref_skills = [r for r in req_matches if r.category == "skill" and not r.is_mandatory]
+            matched_pref = [r for r in pref_skills if r.status in ["MATCHED", "INFERRED"]]
+
+            if mand_skills:
+                pref_names = [re.sub(r"^(?:Demonstrated hands-on expertise with|Hands-on expertise in|Experience or familiarity with|Familiarity with|Expertise in)\s+", "", p.text, flags=re.IGNORECASE).strip() for p in matched_pref]
+                if pref_names:
+                    strengths.append(f"Matches {len(matched_mand)} of {len(mand_skills)} mandatory skills, with additional experience in {' and '.join(pref_names[:2])}")
+                else:
+                    strengths.append(f"Matches {len(matched_mand)} of {len(mand_skills)} mandatory skills")
+            elif sc.skills_match.matched:
                 strengths.append(f"Strong match in {', '.join(sc.skills_match.matched[:3])}")
+
             if sc.experience_relevance.score >= 8.0:
                 strengths.append(f"{cand.total_experience_years} years verified experience")
             if strong_ev_count >= 2:
                 strengths.append(f"{strong_ev_count} quantified outcome metrics")
-            if sc.skills_match.missing:
+
+            missing_mand = [r for r in req_matches if r.is_mandatory and r.status == "MISSING"]
+            if missing_mand:
+                clean_names = [re.sub(r"^(?:Demonstrated hands-on expertise with|Hands-on expertise in|Experience or familiarity with|Familiarity with|Expertise in)\s+", "", m.text, flags=re.IGNORECASE).strip() for m in missing_mand]
+                if len(clean_names) == 1:
+                    gaps.append(f"One mandatory skill is not evidenced: {clean_names[0]}")
+                else:
+                    gaps.append(f"{len(clean_names)} mandatory skills are not evidenced: {', '.join(clean_names)}")
+            elif sc.skills_match.missing:
                 gaps.append(f"Missing skills: {', '.join(sc.skills_match.missing[:2])}")
-            if not sc.hard_requirements_passed:
-                gaps.append("Did not satisfy all hard/mandatory requirements")
 
         dim_scores = {
             "skills": sc.skills_match.score if sc else 0.0,

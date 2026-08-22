@@ -50,17 +50,16 @@ async def run_screening_pipeline(
                 r.required = False
 
     async def evaluate_single_candidate(cand, rank, prefilter_score) -> ScreeningResult:
-        # Dynamically refresh candidate from raw_text using latest extraction logic
-        if cand.raw_text:
+        # Dynamically refresh candidate from raw_text if not already structured
+        if cand.raw_text and not cand.experience:
             try:
                 from app.extraction.pdf_extractor import parse_resume_to_candidate
-                fresh_cand = parse_resume_to_candidate(cand.raw_text, cand.raw_name)
+                fresh_cand = parse_resume_to_candidate(cand.raw_text, cand.raw_name or "resume.txt")
                 fresh_cand.candidate_id = cand.candidate_id
                 fresh_cand.status = cand.status
                 fresh_cand.anonymized_name = cand.anonymized_name
                 fresh_cand.created_at = cand.created_at
                 cand = fresh_cand
-                database.save_candidate(cand)
             except Exception as parse_err:
                 logger.warning(f"Could not dynamic refresh candidate {cand.candidate_id}: {parse_err}")
 

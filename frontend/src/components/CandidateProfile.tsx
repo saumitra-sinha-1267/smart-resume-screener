@@ -79,13 +79,33 @@ export const CandidateProfile: React.FC<CandidateProfileProps> = ({
     }
   };
 
-  // Compute strengths and gaps for "WHY THIS CANDIDATE?"
+  // Helper to clean requirement text prefix
+  const cleanReqText = (txt: string) =>
+    txt.replace(/^(?:Demonstrated hands-on expertise with|Hands-on expertise in|Experience or familiarity with|Familiarity with|Expertise in)\s+/i, '').trim();
+
+  // Compute strengths and gaps for "WHY THIS CANDIDATE?" dynamically from requirement matrix
   const strengths: string[] = [];
   const gaps: string[] = [];
 
-  if (score.skills_match.matched.length > 0) {
-    strengths.push(`Matches ${score.skills_match.matched.length} key required skills: ${score.skills_match.matched.slice(0, 4).join(', ')}`);
+  const reqMatches = score.requirement_matches || [];
+  const mandSkillReqs = reqMatches.filter((r) => r.category === 'skill' && r.is_mandatory);
+  const matchedMandSkills = mandSkillReqs.filter((r) => r.status === 'MATCHED' || r.status === 'INFERRED');
+  const prefSkillReqs = reqMatches.filter((r) => r.category === 'skill' && !r.is_mandatory);
+  const matchedPrefSkills = prefSkillReqs.filter((r) => r.status === 'MATCHED' || r.status === 'INFERRED');
+
+  if (mandSkillReqs.length > 0) {
+    const prefNames = matchedPrefSkills.map((r) => cleanReqText(r.text));
+    let strengthMsg = `Matches ${matchedMandSkills.length} of ${mandSkillReqs.length} mandatory skills`;
+    if (prefNames.length > 0) {
+      strengthMsg += `, with additional experience in ${prefNames.slice(0, 3).join(' and ')}.`;
+    } else {
+      strengthMsg += '.';
+    }
+    strengths.push(strengthMsg);
+  } else if (score.skills_match.matched.length > 0) {
+    strengths.push(`Matches ${score.skills_match.matched.length} key skills: ${score.skills_match.matched.slice(0, 4).join(', ')}`);
   }
+
   if (candidate.total_experience_years >= 4) {
     strengths.push(`${candidate.total_experience_years} years of verified progressive engineering experience`);
   }
@@ -97,12 +117,21 @@ export const CandidateProfile: React.FC<CandidateProfileProps> = ({
     strengths.push('Active public GitHub/portfolio exhibits verified live');
   }
 
-  if (score.skills_match.missing.length > 0) {
-    gaps.push(`Unconfirmed mandatory skill requirements: ${score.skills_match.missing.slice(0, 3).join(', ')}`);
+  // Dynamic Gaps from Requirement Matrix
+  const missingMandatory = reqMatches.filter((r) => r.is_mandatory && r.status === 'MISSING');
+  if (missingMandatory.length > 0) {
+    const missingNames = missingMandatory.map((r) => cleanReqText(r.text));
+    if (missingNames.length === 1) {
+      gaps.push(`One mandatory skill is not evidenced: ${missingNames[0]}.`);
+    } else {
+      gaps.push(`${missingNames.length} mandatory skills are not evidenced: ${missingNames.join(', ')}.`);
+    }
+  } else if (score.skills_match.missing.length > 0) {
+    gaps.push(`Unconfirmed skill requirements: ${score.skills_match.missing.slice(0, 3).join(', ')}`);
+  } else if (!score.hard_requirements_passed) {
+    gaps.push('Did not satisfy all mandatory position qualifications.');
   }
-  if (!score.hard_requirements_passed) {
-    gaps.push('Did not completely satisfy all hard experience or skill qualifications');
-  }
+
   if (!score.hallucination_guard_passed) {
     gaps.push('Hallucination guard detected unverified claim in resume extractions');
   }
