@@ -1,6 +1,6 @@
-# Smart Resume Screener (Enterprise ATS & AI Screening Engine)
+# Smart Resume Screener (AI-Assisted ATS & Candidate Screening Engine)
 
-A high-throughput, enterprise-grade AI resume screening and applicant tracking platform designed for talent acquisition teams. It combines **local semantic vector retrieval (`sentence-transformers/all-MiniLM-L6-v2`)**, **structured LLM evaluation**, **deterministic calibrated fallback scoring**, **claim-by-claim hallucination guarding**, and **blind review privacy enforcement**.
+A modular AI-assisted resume screening and applicant tracking platform designed for talent acquisition workflows. It combines **local semantic vector retrieval (`sentence-transformers/all-MiniLM-L6-v2`)**, **structured LLM evaluation**, **deterministic calibrated fallback scoring**, **claim-by-claim hallucination guarding**, and **blind review privacy enforcement**.
 
 ---
 
@@ -29,7 +29,7 @@ A high-throughput, enterprise-grade AI resume screening and applicant tracking p
 | Semantic Retrieval Pipeline              |                      | Multi-Dimension Evaluation Pipeline      |
 | 1. Chunk Resume Bullets                  |                      | 1. Hard Requirements (Mandatory Skills)  |
 | 2. Dense Embeddings (all-MiniLM-L6-v2)   |                      | 2. Soft Requirements (Preferred/Domain)  |
-| 3. Global In-Memory Vector Cache         |                      | 3. LLM Evaluator (Gemini / OpenAI)       |
+| 3. Global In-Memory Vector Cache         |                      | 3. LLM Evaluator (Gemini / Fallback)     |
 | 4. Cosine Similarity Pre-filtering (Top N|                      | 4. Deterministic Calibrated Fallback     |
 +------------------------------------------+                      | 5. Hallucination Guard (Claim Audit)     |
                                                                   | 6. Multi-Factor Confidence Index         |
@@ -39,7 +39,7 @@ A high-throughput, enterprise-grade AI resume screening and applicant tracking p
                                                                   +------------------------------------------+
                                                                   | SQLite Storage Engine (WAL Mode)         |
                                                                   | - Compound Indexes on Screenings/Uploads |
-                                                                  | - Tamper-Evident PII-Sanitized Audit Logs|
+                                                                  | - Structured PII-Sanitized Audit Logs    |
                                                                   +------------------------------------------+
 ```
 
@@ -47,13 +47,13 @@ A high-throughput, enterprise-grade AI resume screening and applicant tracking p
 
 ## 2. Core Features
 
-### Enterprise Recruiter Dashboard
+### Recruiter Dashboard
 - **Real-Time KPIs**: Total Candidates, Screened, Shortlisted, Interviews.
 - **Table-Heavy Interface**: Search, Job filter, Status filter, Score filter, Multi-select bulk shortlisting, and candidate comparison.
 - **Compact Progress Bars**: Visualizes overall score (`92% [█████████░]`) and sub-dimensions without circular gauges.
 
 ### Job Description Intelligence
-- **AI JD Analyzer**: Pasting raw job description automatically extracts Title, Department, Seniority, Min Experience, Mandatory Skills, and Preferred Skills.
+- **Automated JD Parser**: Converts raw job descriptions into structured titles, seniority levels, min experience, and categorized mandatory vs. preferred skills using rule-based pattern matching and skill taxonomy dictionaries.
 - **Editable Requirements**: Recruiters can modify extracted chips and criteria before saving.
 
 ### 5-Dimension Scoring Matrix
@@ -65,10 +65,10 @@ A high-throughput, enterprise-grade AI resume screening and applicant tracking p
 
 ### Security, Safety & Privacy
 - **Blind Review PII Redaction**: Hides candidate names, emails, phone numbers, and graduation years to mitigate unconscious bias.
-- **SSRF Attack Shield**: Resolves domain IPs and blocks private networks (RFC 1918), AWS/GCP metadata services (`169.254.169.254`), and loopback addresses.
+- **SSRF URL Validation**: Resolves domain IPs and blocks private networks (RFC 1918), AWS/GCP metadata services (`169.254.169.254`), and loopback addresses.
 - **Upload Security**: 10MB file limit, MIME allowlisting (`.pdf`, `.txt`), path traversal defense, and PDF parsing timeout protection.
-- **Prompt Injection Defense**: Sanitizes input bullets against instruction injection and prompt override payloads.
-- **Audit Logging**: Immutable SQLite audit log tracking all actions with automated email/phone scrubbing.
+- **Prompt Injection Detection**: Scans candidate bullets for instruction override patterns, flags suspicious inputs, and wraps untrusted data in XML boundaries.
+- **Audit Logging**: SQLite audit trail tracking recruiter and screening actions with automated email/phone scrubbing.
 
 ---
 
