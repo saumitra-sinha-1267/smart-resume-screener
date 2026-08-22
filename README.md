@@ -41,10 +41,9 @@ Smart Resume Screener is an automated applicant tracking and resume screening sy
 Follow these steps to demonstrate the end-to-end recruiter workflow in under 3 minutes:
 
 1. **Start the System**:
-   - Backend: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-   - Frontend: 
-pm run dev
-   - Open your browser at http://localhost:5173.
+   - Backend: `uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload`
+   - Frontend: `npm run dev`
+   - Open your browser at `http://localhost:5173`.
 2. **Select or Create a Job Position**: Choose a preset job (e.g. *Senior Backend Engineer* or *Data Analyst - Fresher*) or click **+ New Job** to paste a custom job description. The automated JD parser extracts required skills, preferred tools, and experience thresholds.
 3. **Upload Candidate Resumes**: Click **Upload Resumes** to drag-and-drop PDF/TXT resumes or click **Seed Benchmark Data** to populate candidate profiles.
 4. **Trigger AI Screening**: Click **Run AI Screening**. The engine executes semantic vector pre-filtering, multi-dimension scoring, requirement matching, and hallucination checks.
@@ -57,7 +56,7 @@ pm run dev
 
 ## Architecture
 
-`mermaid
+`````mermaid
 flowchart TD
     subgraph Client ["Frontend Layer (React + Vite + TypeScript)"]
         UI["Recruiter Dashboard"]
@@ -115,7 +114,7 @@ flowchart TD
     CONF --> SCR_TBL
     AUTH --> LOG_TBL
     SCR_TBL --> UI
-`
+```
 
 ### Component Overview
 
@@ -132,7 +131,7 @@ flowchart TD
 
 The screening engine processes resumes through a 9-step evaluation pipeline:
 
-`
+```
 [Resume Upload] 
       │
       ▼
@@ -161,12 +160,13 @@ The screening engine processes resumes through a 9-step evaluation pipeline:
       │
       ▼
 9. Recruiter Justification ─► Generates requirement matrix & dynamic candidate summary
-`
+```
 
 1. **Document Parsing** ([pdf_extractor.py](backend/app/extraction/pdf_extractor.py)): Extracts text from .pdf and .txt files with fallback to scanned OCR handling when native text is absent.
 2. **Candidate Extraction** ([section_splitter.py](backend/app/extraction/section_splitter.py), [	axonomy.py](backend/app/normalization/taxonomy.py)): Identifies sections (Experience, Skills, Education, Projects), maps synonyms to canonical skills, and calculates verified employment duration strictly from explicit date ranges.
 3. **Job Description Intelligence** ([jd_parser.py](backend/app/extraction/jd_parser.py)): Parses raw job descriptions into structured title, seniority, minimum experience, and categorized requirements.
-4. **Dense Semantic Retrieval** ([ector_store.py](backend/app/semantic/vector_store.py)): Computes dense embeddings over candidate bullet points and ranks candidates by semantic relevance to pre-filter candidate pools.
+4. **Dense Semantic Retrieval** ([
+ector_store.py](backend/app/semantic/vector_store.py)): Computes dense embeddings over candidate bullet points and ranks candidates by semantic relevance to pre-filter candidate pools.
 5. **Multi-Dimension Evaluation** ([llm_scorer.py](backend/app/scoring/llm_scorer.py)): Evaluates candidate qualifications across 5 weighted dimensions.
 6. **Evidence Quality Classification** ([metric_detector.py](backend/app/evidence/metric_detector.py)): Analyzes bullet points for quantified business metrics (scale, latency, revenue, percentages).
 7. **Hallucination Guard** ([hallucination_guard.py](backend/app/scoring/hallucination_guard.py)): Verifies every claimed skill against the candidate's actual extracted resume text, penalizing unevidenced claims.
@@ -196,7 +196,8 @@ The backend runtime engine calculates candidate fit on a **0.0 to 10.0 scale** u
 
 ### Hard vs. Soft Criteria Handling
 
-- **Hard Requirements (Mandatory)**: Evaluated independently. If a candidate fails mandatory criteria (e.g., missing critical required skills or mandatory experience thresholds), hard_requirements_passed is marked alse.
+- **Hard Requirements (Mandatory)**: Evaluated independently. If a candidate fails mandatory criteria (e.g., missing critical required skills or mandatory experience thresholds), hard_requirements_passed is marked 
+alse.
 - **Soft Requirements (Preferred)**: Provide additive bonuses to sub-dimension scores without gating the candidate.
 - **Deterministic Calibrated Fallback**: If no LLM API key is configured or the external API is unreachable, the system executes an offline rule engine that replicates the 5-dimension rubric without degradation.
 
@@ -289,7 +290,7 @@ Example Output JSON:
 </TARGET_JOB_DESCRIPTION>
 
 OUTPUT JSON:
-`
+```
 
 ### Prompt Engineering & Safeguards Rationale
 
@@ -304,7 +305,7 @@ OUTPUT JSON:
 
 *Actual evaluation output from the screening pipeline for an entry-level Data Analyst candidate:*
 
-`json
+`````json
 {
   "candidate": {
     "anonymized_name": "Candidate #4d14e9",
@@ -362,7 +363,7 @@ OUTPUT JSON:
     ]
   }
 }
-`
+```
 
 ---
 
@@ -424,7 +425,7 @@ smart-resume-screener/
 │   ├── vite.config.ts               # Vite bundler configuration
 │   └── tailwind.config.js           # Tailwind CSS configuration
 └── README.md                        # Documentation and architecture guide
-`
+```
 
 ---
 
@@ -437,7 +438,7 @@ smart-resume-screener/
 
 ### 1. Backend Setup
 
-`ash
+```bash
 cd backend
 
 # Create and activate virtual environment
@@ -455,23 +456,23 @@ cp .env.example .env
 
 # Start FastAPI application
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-`
+```
 
 The interactive OpenAPI documentation will be available at http://localhost:8000/docs.
 
 ### 2. Frontend Setup
 
-`ash
+```bash
 cd frontend
 
 # Install npm packages
 npm install
 
 # Start Vite development server
-npm run dev
-`
+n`npm run dev`
+```
 
-The recruiter dashboard will be available at http://localhost:5173.
+The recruiter dashboard will be available at `http://localhost:5173`.
 
 ### 3. Environment Variables Reference
 
@@ -486,7 +487,7 @@ Configure these in ackend/.env:
 | ENABLE_LINK_CHECK| 	rue | Enables external portfolio and GitHub profile verification. |
 | DATABASE_PATH | data/screener.db | Path for the SQLite database file. |
 | UPLOADS_DIR | data/uploads | Storage directory for uploaded resume files. |
-| CORS_ORIGINS | http://localhost:5173 | Allowed frontend origins for CORS headers. |
+| CORS_ORIGINS | `http://localhost:5173` | Allowed frontend origins for CORS headers. |
 
 ---
 
@@ -495,18 +496,18 @@ Configure these in ackend/.env:
 The repository includes test suites across backend and frontend layers:
 
 ### Backend Test Suite (41 Tests)
-`ash
+```bash
 cd backend
 python -m pytest tests/ -v
-`
+```
 
 *Test coverage includes: Document extraction, section chunking, PII anonymization, SSRF protection, vector pre-filtering, 5-dimension scoring, requirement matching, hallucination guard, prompt injection defense, and full recruiter lifecycle flows.*
 
 ### Frontend Test Suite (3 Tests)
-`ash
+```bash
 cd frontend
 npx vitest run
-`
+```
 
 ---
 
@@ -514,10 +515,10 @@ npx vitest run
 
 The repository includes an offline evaluation suite for benchmark scoring and calibration validation:
 
-`ash
+```bash
 cd backend
 python -m evaluation.run
-`
+```
 
 > **Note**: *Evaluation benchmarks utilize a synthetic candidate dataset for consistent regression testing, ranking calibration, and fairness audits.*
 
@@ -525,14 +526,14 @@ python -m evaluation.run
 
 | Metric Category | Metric | Benchmark Score | Target Threshold |
 | :--- | :--- | :---: | :---: |
-| **Ranking Quality** | Precision@5 | **0.8000** | $\ge 0.80$ |
-| | Recall@10 | **1.0000** | .00$ |
-| | NDCG@10 | **0.9988** | $\ge 0.85$ |
-| | Mean Reciprocal Rank (MRR) | **1.0000** | .00$ |
-| **Error Rates** | False Positive Rate | **0.0000** | $\le 0.05$ |
-| | False Negative Rate | **0.2500** | $\le 0.30$ |
-| **Hallucination** | Hallucination Rate | **0.0000** | .00$ |
-| **Fairness & Bias** | Demographic Perturbation Delta | **0.0000** | $\le 0.02$ |
+| **Ranking Quality** | Precision@5 | **0.8000** | ≥ 0.80 |
+| | Recall@10 | **1.0000** | 1.00 |
+| | NDCG@10 | **0.9988** | ≥ 0.85 |
+| | Mean Reciprocal Rank (MRR) | **1.0000** | 1.00 |
+| **Error Rates** | False Positive Rate | **0.0000** | ≤ 0.05 |
+| | False Negative Rate | **0.2500** | ≤ 0.30 |
+| **Hallucination** | Hallucination Rate | **0.0000** | 0.00 |
+| **Fairness & Bias** | Demographic Perturbation Delta | **0.0000** | ≤ 0.02 |
 
 ---
 
