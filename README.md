@@ -22,58 +22,17 @@ Smart Resume Screener is an automated applicant tracking and resume screening sy
 
 ## Screenshots
 
-> *Placeholders for key recruiter dashboard workflows.*
-
 ### 1. Job Creation & Requirement Extraction
-`	ext
-+-----------------------------------------------------------------------------------+
-|  [+] Create New Job Position                                                      |
-|  Title: Data Analyst - Entry Level        Department: Analytics                   |
-|  Seniority: Entry-Level                   Min Experience: 0 Years                 |
-|  -------------------------------------------------------------------------------  |
-|  Extracted Mandatory Skills: [Python] [SQL] [Pandas] [NumPy] [Data Viz] [Stats]   |
-|  Extracted Preferred Skills: [Power BI] [Microsoft Excel]                         |
-+-----------------------------------------------------------------------------------+
-`
-*(Screenshot path: docs/screenshots/01_job_creation.png)*
+![Job Creation](docs/screenshots/01_job_creation.png)
 
 ### 2. Candidate Ranking & Leaderboard
-`	ext
-+-----------------------------------------------------------------------------------+
-|  Leaderboard: Fresher Data Analyst (Entry Level)                   [Blind Review] |
-|  Rank  Candidate ID       Overall Score   Hard Match   Confidence   Status        |
-|  #1    Candidate #4d14e9  7.8 / 10        PASSED       Medium       NEW           |
-|  #2    Candidate #db51c4  7.0 / 10        PASSED       Medium       NEW           |
-|  #3    Candidate #39d196  5.5 / 10        FAILED       Low          NEW           |
-+-----------------------------------------------------------------------------------+
-`
-*(Screenshot path: docs/screenshots/02_candidate_ranking.png)*
+![Candidate Ranking](docs/screenshots/02_candidate_ranking.png)
 
 ### 3. Candidate Evaluation Dossier & Why This Candidate
-`	ext
-+-----------------------------------------------------------------------------------+
-|  EVALUATION DOSSIER: Candidate #4d14e9                     DETERMINATION: 7.8 / 10|
-|  Tenure: 0.2 Years • B.Tech in Electronics and Communication Engineering (ECE)    |
-|  -------------------------------------------------------------------------------  |
-|  Recommendation: Matches 5 of 6 mandatory skills, with additional experience in   |
-|  Microsoft Excel and Power BI.                                                    |
-|  Gaps: One mandatory skill is not evidenced: Statistics.                          |
-+-----------------------------------------------------------------------------------+
-`
-*(Screenshot path: docs/screenshots/03_evaluation_dossier.png)*
+![Candidate Evaluation](docs/screenshots/03_candidate_evaluation.png)
 
 ### 4. Requirement Matrix & Evidence Grounding
-`	ext
-+-----------------------------------------------------------------------------------+
-|  REQUIREMENTS TRACEABILITY MATRIX                                                 |
-|  [MATCHED] (STRONG)  Entry level / 0+ yrs exp  -> 0.2 yrs verified meets 0+ req   |
-|  [MATCHED] (STRONG)  Data Visualization        -> Backed by Plotly & Streamlit    |
-|  [MATCHED] (MEDIUM)  Python, SQL, Pandas       -> Explicitly listed & evidenced   |
-|  [MISSING] (NONE)    Statistics                -> Required skill not evidenced    |
-|  [PARTIAL] (MEDIUM)  Degree In Computer Science-> B.Tech ECE related tech field   |
-+-----------------------------------------------------------------------------------+
-`
-*(Screenshot path: docs/screenshots/04_requirements_matrix.png)*
+![Requirement Matrix](docs/screenshots/04_requirements_matrix.png)
 
 ---
 
@@ -81,11 +40,14 @@ Smart Resume Screener is an automated applicant tracking and resume screening sy
 
 Follow these steps to demonstrate the end-to-end recruiter workflow in under 3 minutes:
 
-1. **Start the System**: Launch backend (uvicorn app.main:app --port 8000) and frontend (
-pm run dev), then open http://localhost:5173.
-2. **Select or Create a Job Position**: Choose a preset job (e.g. *Senior Backend Engineer* or *Fresher Data Analyst*) or click **+ New Job** to paste a job description. The automated JD parser immediately extracts required skills, preferred tools, and experience thresholds.
+1. **Start the System**:
+   - Backend: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+   - Frontend: 
+pm run dev
+   - Open your browser at http://localhost:5173.
+2. **Select or Create a Job Position**: Choose a preset job (e.g. *Senior Backend Engineer* or *Data Analyst - Fresher*) or click **+ New Job** to paste a custom job description. The automated JD parser extracts required skills, preferred tools, and experience thresholds.
 3. **Upload Candidate Resumes**: Click **Upload Resumes** to drag-and-drop PDF/TXT resumes or click **Seed Benchmark Data** to populate candidate profiles.
-4. **Trigger AI Screening**: Click **Run AI Screening**. The engine runs semantic vector pre-filtering, multi-dimension scoring, requirement matching, and hallucination checks.
+4. **Trigger AI Screening**: Click **Run AI Screening**. The engine executes semantic vector pre-filtering, multi-dimension scoring, requirement matching, and hallucination checks.
 5. **Inspect the Ranked Leaderboard**: Review candidates ranked by calibrated fit score, with immediate visibility into Hard Requirement pass/fail status and confidence ratings.
 6. **Open Candidate Evaluation Dossier**: Click on any candidate to inspect their detailed scorecard, **Why This Candidate** recommendation, **Key Strengths**, **Requirement Matrix**, and claim audit.
 7. **Toggle Blind Review (Privacy Mode)**: Toggle **Blind Review** to demonstrate real-time masking of candidate names, emails, phone numbers, and graduation dates to prevent unconscious bias.
@@ -216,7 +178,11 @@ equirement_matcher.py](backend/app/scoring/requirement_matcher.py)): Produces a 
 
 ## Scoring Methodology
 
-Screening scores are calculated on a **0.0 to 10.0 scale** using a 5-dimension weighted rubric:
+### Authoritative Runtime Scoring Formula
+
+The backend runtime engine calculates candidate fit on a **0.0 to 10.0 scale** using the authoritative 5-dimension weighted rubric defined in [ackend/app/scoring/llm_scorer.py](backend/app/scoring/llm_scorer.py):
+
+\text{Overall Score} = (\text{Skills} \times 0.30) + (\text{Experience} \times 0.25) + (\text{Evidence} \times 0.20) + (\text{Seniority} \times 0.15) + (\text{Education} \times 0.10)
 
 | Dimension | Weight | Evaluation Criteria |
 | :--- | :---: | :--- |
@@ -225,6 +191,8 @@ Screening scores are calculated on a **0.0 to 10.0 scale** using a 5-dimension w
 | **Evidence Quality** | **20%** | Density of quantified outcome metrics (e.g., latency reduction, scale, throughput) in work history. |
 | **Seniority Alignment** | **15%** | Career progression, scope of responsibility, and organizational tenure match. |
 | **Education Fit** | **10%** | Degree level (Bachelor's, Master's, Ph.D.) and academic discipline alignment (Exact vs. Related vs. Non-Technical). |
+
+> **Note on LLM vs. Runtime Formula**: In the LLM prompt, the model provides intermediate ratings for individual dimensions (skills_match, experience_relevance, seniority_alignment, education_fit). The authoritative backend pipeline then incorporates the independently computed **Evidence Quality score (20%)** and **Hallucination Guard claim penalties** before computing the final published overall_score.
 
 ### Hard vs. Soft Criteria Handling
 
@@ -428,6 +396,8 @@ OUTPUT JSON:
 
 `	ext
 smart-resume-screener/
+├── docs/
+│   └── screenshots/                 # UI screenshots for documentation
 ├── backend/
 │   ├── app/
 │   │   ├── api/                     # REST API routers (candidates, jobs, screening, audit, export)
