@@ -1,0 +1,23 @@
+Maya Lin
+maya.lin.ai@gmail.com | +1 (555) 987-6543 | Austin, TX | https://github.com/shadcn
+
+PROFESSIONAL SUMMARY
+Full Stack AI Engineer with 4 years building LLM-integrated web applications using React, TypeScript, and FastAPI.
+
+TECHNICAL SKILLS
+React, Next.js, TypeScript, Tailwind CSS, Python, FastAPI, ChromaDB, LangChain, LLMs / Generative AI, Vector Databases
+
+WORK EXPERIENCE
+Full Stack AI Engineer | CognitiveLab AI
+2023-01 - Present
+• Built AI copilot UI using React, TypeScript, Tailwind CSS, and WebSockets serving 150k monthly active users.
+• Engineered RAG backend pipeline using FastAPI, LangChain, and ChromaDB vector search, improving retrieval accuracy by 35%.
+• Fine-tuned open-source LLMs and evaluated token latency, reducing response generation time from 2.4s to 850ms.
+
+Frontend Developer | NextGen SaaS
+2021-06 - 2022-12
+• Developed responsive dashboard interfaces using Next.js and TypeScript.
+• Increased page load speed by 28% through code splitting and asset optimization.
+
+EDUCATION
+B.Tech in Information Technology | UT Austin (2021)

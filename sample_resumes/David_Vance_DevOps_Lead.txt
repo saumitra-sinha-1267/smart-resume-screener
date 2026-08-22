@@ -1,0 +1,19 @@
+David Vance
+david.vance.ops@outlook.com | +1 (555) 345-6789 | Seattle, WA | https://github.com/kubernetes/kubernetes
+
+PROFESSIONAL SUMMARY
+DevOps & Cloud Infrastructure Lead with 7+ years of experience governing multi-region AWS environments and Kubernetes orchestration.
+
+TECHNICAL SKILLS
+AWS, Kubernetes, Terraform, Docker, CI/CD, Linux, Prometheus, Grafana, Python, Bash / Shell
+
+WORK EXPERIENCE
+Lead Infrastructure Engineer | FinTech Enterprise
+2021-08 - Present
+• Managed multi-region AWS cloud infrastructure supporting 99.995% uptime across 400+ microservices.
+• Wrote modular Terraform infrastructure-as-code modules managing 1,200+ AWS resources.
+• Reduced CI/CD build and deploy times from 45 mins to 6 mins with automated GitHub Actions workflows.
+• Led platform team of 8 infrastructure engineers, conducting 24/7 on-call rotations and root cause analyses.
+
+EDUCATION
+B.S. in Electrical and Computer Engineering | University of Washington (2017)

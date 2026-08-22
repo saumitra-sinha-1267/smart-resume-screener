@@ -1,0 +1,25 @@
+Alex Mercer
+alex.mercer@devtech.io | +1 (555) 234-5678 | San Francisco, CA | https://github.com/torvalds
+
+PROFESSIONAL SUMMARY
+Senior Software Engineer with 6.5+ years of experience designing and scaling distributed backend architectures in Python, PostgreSQL, and Kubernetes.
+
+TECHNICAL SKILLS
+Python, FastAPI, Django, PostgreSQL, Kubernetes, Docker, Redis, Microservices, REST APIs, CI/CD, GitHub Actions
+
+WORK EXPERIENCE
+Staff Backend Engineer | Stripe / FinScale
+2022-03 - Present
+• Architected distributed event-driven payment processing pipeline handling 20M+ daily events in Python and FastAPI.
+• Optimized PostgreSQL queries, sharding partitions and indices, reducing API p99 latency by 42% and cutting server costs by $180k/year.
+• Led a cross-functional squad of 6 engineers across 3 timezones, standardizing CI/CD with GitHub Actions and Docker on Kubernetes.
+• Mentored 4 junior engineers to senior promotions through rigorous code reviews and weekly design sessions.
+
+Senior Software Engineer | CloudPlatform Inc
+2019-06 - 2022-02
+• Built resilient REST APIs in Python/Django backed by PostgreSQL and Redis cluster.
+• Migrated legacy monolithic services into Kubernetes microservices with 99.99% uptime.
+• Authored internal developer tooling adopted by 120+ software engineers across the organization.
+
+EDUCATION
+B.S. in Computer Science | Stanford University (2018)

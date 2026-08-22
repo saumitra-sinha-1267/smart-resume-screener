@@ -1,0 +1,151 @@
+{
+  "dataset_size": {
+    "total_candidates": 10,
+    "relevant_candidates_ground_truth": 4,
+    "benchmark_job": "Senior Backend Engineer"
+  },
+  "ranking_metrics": {
+    "Precision@5": 0.8,
+    "Recall@10": 1.0,
+    "NDCG@10": 0.9988,
+    "MRR": 1.0
+  },
+  "classification_metrics": {
+    "False_Positive_Rate": 0.0,
+    "False_Negative_Rate": 0.25,
+    "Score_Threshold": 7.0
+  },
+  "hallucination_evaluation": {
+    "total_claims_analyzed": 0,
+    "verified_claims": 0,
+    "unsupported_claims": 0,
+    "hallucination_rate": 0.0
+  },
+  "bias_consistency_audit": {
+    "audit_name": "Bias/Consistency Audit",
+    "tested_attributes": [
+      "Name",
+      "Location",
+      "Graduation Year",
+      "Email Domain"
+    ],
+    "mean_absolute_difference": 0.0,
+    "max_delta": 0.0,
+    "is_consistent": true,
+    "disclaimer": "Scores exhibit high stability across demographic and non-competency perturbations. This demonstrates mathematical consistency on tested variables, but does not prove complete fairness across all contexts.",
+    "detailed_results": [
+      {
+        "candidate_id": "eval-cand-001",
+        "baseline_score": 9.0,
+        "min_variant_score": 9.0,
+        "max_variant_score": 9.0,
+        "max_deviation": 0.0,
+        "perturbations_tested": 20
+      },
+      {
+        "candidate_id": "eval-cand-002",
+        "baseline_score": 8.3,
+        "min_variant_score": 8.3,
+        "max_variant_score": 8.3,
+        "max_deviation": 0.0,
+        "perturbations_tested": 20
+      },
+      {
+        "candidate_id": "eval-cand-003",
+        "baseline_score": 7.3,
+        "min_variant_score": 7.3,
+        "max_variant_score": 7.3,
+        "max_deviation": 0.0,
+        "perturbations_tested": 20
+      },
+      {
+        "candidate_id": "eval-cand-004",
+        "baseline_score": 6.9,
+        "min_variant_score": 6.9,
+        "max_variant_score": 6.9,
+        "max_deviation": 0.0,
+        "perturbations_tested": 20
+      },
+      {
+        "candidate_id": "eval-cand-005",
+        "baseline_score": 5.9,
+        "min_variant_score": 5.9,
+        "max_variant_score": 5.9,
+        "max_deviation": 0.0,
+        "perturbations_tested": 20
+      }
+    ]
+  },
+  "confidence_calibration": {
+    "total_evaluated": 10,
+    "high_confidence_count": 0,
+    "medium_confidence_count": 10,
+    "low_confidence_count": 0,
+    "unjustified_high_count": 0,
+    "unjustified_high_rate": 0.0,
+    "is_calibrated": true,
+    "flags": []
+  },
+  "actual_ranking": [
+    {
+      "rank": 1,
+      "candidate_id": "eval-cand-001",
+      "score": 9.0,
+      "ground_truth_relevance": 3
+    },
+    {
+      "rank": 2,
+      "candidate_id": "eval-cand-002",
+      "score": 8.3,
+      "ground_truth_relevance": 3
+    },
+    {
+      "rank": 3,
+      "candidate_id": "eval-cand-003",
+      "score": 7.3,
+      "ground_truth_relevance": 2
+    },
+    {
+      "rank": 4,
+      "candidate_id": "eval-cand-004",
+      "score": 6.9,
+      "ground_truth_relevance": 2
+    },
+    {
+      "rank": 5,
+      "candidate_id": "eval-cand-010",
+      "score": 6.3,
+      "ground_truth_relevance": 1
+    },
+    {
+      "rank": 6,
+      "candidate_id": "eval-cand-005",
+      "score": 5.9,
+      "ground_truth_relevance": 1
+    },
+    {
+      "rank": 7,
+      "candidate_id": "eval-cand-008",
+      "score": 5.1,
+      "ground_truth_relevance": 0
+    },
+    {
+      "rank": 8,
+      "candidate_id": "eval-cand-006",
+      "score": 4.9,
+      "ground_truth_relevance": 1
+    },
+    {
+      "rank": 9,
+      "candidate_id": "eval-cand-007",
+      "score": 4.7,
+      "ground_truth_relevance": 0
+    },
+    {
+      "rank": 10,
+      "candidate_id": "eval-cand-009",
+      "score": 3.9,
+      "ground_truth_relevance": 0
+    }
+  ]
+}
