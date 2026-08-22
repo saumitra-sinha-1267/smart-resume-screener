@@ -25,7 +25,7 @@ Smart Resume Screener is an automated applicant tracking and resume screening sy
 > *Placeholders for key recruiter dashboard workflows.*
 
 ### 1. Job Creation & Requirement Extraction
-`
+`	ext
 +-----------------------------------------------------------------------------------+
 |  [+] Create New Job Position                                                      |
 |  Title: Data Analyst - Entry Level        Department: Analytics                   |
@@ -38,7 +38,7 @@ Smart Resume Screener is an automated applicant tracking and resume screening sy
 *(Screenshot path: docs/screenshots/01_job_creation.png)*
 
 ### 2. Candidate Ranking & Leaderboard
-`
+`	ext
 +-----------------------------------------------------------------------------------+
 |  Leaderboard: Fresher Data Analyst (Entry Level)                   [Blind Review] |
 |  Rank  Candidate ID       Overall Score   Hard Match   Confidence   Status        |
@@ -50,7 +50,7 @@ Smart Resume Screener is an automated applicant tracking and resume screening sy
 *(Screenshot path: docs/screenshots/02_candidate_ranking.png)*
 
 ### 3. Candidate Evaluation Dossier & Why This Candidate
-`
+`	ext
 +-----------------------------------------------------------------------------------+
 |  EVALUATION DOSSIER: Candidate #4d14e9                     DETERMINATION: 7.8 / 10|
 |  Tenure: 0.2 Years • B.Tech in Electronics and Communication Engineering (ECE)    |
@@ -63,7 +63,7 @@ Smart Resume Screener is an automated applicant tracking and resume screening sy
 *(Screenshot path: docs/screenshots/03_evaluation_dossier.png)*
 
 ### 4. Requirement Matrix & Evidence Grounding
-`
+`	ext
 +-----------------------------------------------------------------------------------+
 |  REQUIREMENTS TRACEABILITY MATRIX                                                 |
 |  [MATCHED] (STRONG)  Entry level / 0+ yrs exp  -> 0.2 yrs verified meets 0+ req   |
@@ -74,6 +74,22 @@ Smart Resume Screener is an automated applicant tracking and resume screening sy
 +-----------------------------------------------------------------------------------+
 `
 *(Screenshot path: docs/screenshots/04_requirements_matrix.png)*
+
+---
+
+## 2–3 Minute Demo Walkthrough
+
+Follow these steps to demonstrate the end-to-end recruiter workflow in under 3 minutes:
+
+1. **Start the System**: Launch backend (uvicorn app.main:app --port 8000) and frontend (
+pm run dev), then open http://localhost:5173.
+2. **Select or Create a Job Position**: Choose a preset job (e.g. *Senior Backend Engineer* or *Fresher Data Analyst*) or click **+ New Job** to paste a job description. The automated JD parser immediately extracts required skills, preferred tools, and experience thresholds.
+3. **Upload Candidate Resumes**: Click **Upload Resumes** to drag-and-drop PDF/TXT resumes or click **Seed Benchmark Data** to populate candidate profiles.
+4. **Trigger AI Screening**: Click **Run AI Screening**. The engine runs semantic vector pre-filtering, multi-dimension scoring, requirement matching, and hallucination checks.
+5. **Inspect the Ranked Leaderboard**: Review candidates ranked by calibrated fit score, with immediate visibility into Hard Requirement pass/fail status and confidence ratings.
+6. **Open Candidate Evaluation Dossier**: Click on any candidate to inspect their detailed scorecard, **Why This Candidate** recommendation, **Key Strengths**, **Requirement Matrix**, and claim audit.
+7. **Toggle Blind Review (Privacy Mode)**: Toggle **Blind Review** to demonstrate real-time masking of candidate names, emails, phone numbers, and graduation dates to prevent unconscious bias.
+8. **Side-by-Side Comparison**: Select multiple candidates to compare their strengths, gaps, verified tenure, and sub-dimension scores side by side.
 
 ---
 
