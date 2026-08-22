@@ -217,7 +217,7 @@ Frontend UI will be accessible at: `http://localhost:5173`
 | :--- | :--- | :--- |
 | `GEMINI_API_KEY` | `""` | Optional Google Gemini API key for LLM candidate evaluation. |
 | `OPENAI_API_KEY` | `""` | Optional OpenAI API key alternative. |
-| `GITHUB_TOKEN` | `""` | Optional GitHub Personal Access Token to increase link verification rate limits (60/hr $ightarrow$ 5000/hr). |
+| `GITHUB_TOKEN` | `""` | Optional GitHub Personal Access Token to increase link verification rate limits (60/hr → 5,000/hr). |
 | `TOP_N_FILTER` | `15` | Number of top candidates retrieved via vector pre-filtering before deep evaluation. |
 | `ENABLE_LINK_CHECK` | `true` | Toggles external link liveness and security verification. |
 | `DATABASE_PATH` | `data/screener.db` | Custom path for SQLite database. |
