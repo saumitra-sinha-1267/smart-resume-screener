@@ -170,7 +170,32 @@ The screening engine processes resumes through a 9-step evaluation pipeline:
 6. **Evidence Quality Classification** ([`metric_detector.py`](backend/app/evidence/metric_detector.py)): Analyzes bullet points for quantified business metrics (scale, latency, revenue, percentages).
 7. **Hallucination Guard** ([`hallucination_guard.py`](backend/app/scoring/hallucination_guard.py)): Verifies every claimed skill against the candidate's actual extracted resume text, penalizing unevidenced claims.
 8. **Confidence Calibration** ([`confidence_scorer.py`](backend/app/scoring/confidence_scorer.py)): Combines evidence strength, requirement coverage, and model certainty into a calibrated rating (`High`, `Medium`, `Low`).
-9. **Recruiter Justification** ([`requirement_matcher.py`](backend/app/scoring/requirement_matcher.py)): Produces a status (`MATCHED`, `PARTIAL`, `MISSING`), evidence strength, and specific reasoning per requirement.
+### Recruiter Job Requirement Extraction Workflow
+
+The platform provides a transparent, recruiter-in-the-loop requirement extraction pipeline:
+
+```text
+[Raw Job Description]
+        │
+        ▼
+1. POST /api/jobs/parse (JD Intelligence Parser)
+        │
+        ▼
+2. Structured Requirements (Role details, Mandatory vs. Preferred skills, Education)
+        │
+        ▼
+3. Recruiter Review & Edit (Add/remove skills, adjust experience, move criteria)
+        │
+        ▼
+4. POST /api/jobs (Persist finalized requirements in SQLite)
+        │
+        ▼
+5. Candidate Screening & Scoring (Evaluated strictly against recruiter-approved criteria)
+```
+
+1. **Raw JD Parsing**: When a recruiter pastes an unstructured job description and clicks **Extract Requirements**, [`jd_parser.py`](backend/app/extraction/jd_parser.py) extracts seniority, minimum tenure thresholds, education, and categorizes skills into mandatory and preferred criteria.
+2. **Interactive Review & Editing**: The recruiter reviews the extracted criteria in the UI, with full ability to add/remove skills, change thresholds, and promote/demote criteria between Required and Preferred.
+3. **Requirement Persistence**: Upon clicking **Create Job**, the final edited requirements are saved to SQLite and used downstream by [`requirement_matcher.py`](backend/app/scoring/requirement_matcher.py) and the scoring engine without alteration.
 
 ---
 

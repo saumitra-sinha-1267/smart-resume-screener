@@ -43,21 +43,81 @@ def parse_job_description_endpoint(req: ParseJobRequest):
     )
     return parsed_job
 
+from app.normalization.schema_models import JobData, JobRequirement
+
+def _sync_job_requirements(job: JobData) -> JobData:
+    """Ensures job.requirements, mandatory_requirements, and preferred_requirements are consistent."""
+    if not job.requirements:
+        requirements: List[JobRequirement] = []
+        if job.min_experience_years == 0.0:
+            requirements.append(JobRequirement(
+                text="Entry level / 0+ years professional experience",
+                category="experience",
+                weight=0.5,
+                required=False,
+                is_mandatory=False
+            ))
+        else:
+            requirements.append(JobRequirement(
+                text=f"{job.min_experience_years}+ years of professional experience",
+                category="experience",
+                weight=1.5,
+                required=True,
+                is_mandatory=True
+            ))
+        for s in job.required_skills:
+            requirements.append(JobRequirement(
+                text=f"Demonstrated hands-on expertise with {s}",
+                category="skill",
+                weight=1.0,
+                required=True,
+                is_mandatory=True
+            ))
+        for p in job.preferred_skills:
+            requirements.append(JobRequirement(
+                text=f"Experience or familiarity with {p}",
+                category="skill",
+                weight=0.5,
+                required=False,
+                is_mandatory=False
+            ))
+        for edu in (job.education_requirements or []):
+            requirements.append(JobRequirement(
+                text=f"Academic credential or equivalent: {edu}",
+                category="education",
+                weight=0.7,
+                required=False,
+                is_mandatory=False
+            ))
+        job.requirements = requirements
+
+    if not job.mandatory_requirements:
+        job.mandatory_requirements = [f"Expertise in {s}" for s in job.required_skills]
+    if not job.preferred_requirements:
+        job.preferred_requirements = [f"Familiarity with {s}" for s in job.preferred_skills]
+        
+    return job
+
 @router.post("", response_model=JobData)
 def create_job(job: JobData):
     """Creates or updates a job opening with structured criteria."""
-    # If requirements empty but raw_description present, auto-parse
-    if not job.requirements and job.raw_description:
+    # If requirements and skills empty but raw_description present, auto-parse
+    if not job.requirements and not job.required_skills and job.raw_description:
         parsed = parse_job_description_text(job.raw_description, custom_title=job.title)
         job.requirements = parsed.requirements
-        if not job.required_skills:
-            job.required_skills = parsed.required_skills
-        if not job.preferred_skills:
-            job.preferred_skills = parsed.preferred_skills
-        if not job.mandatory_requirements:
-            job.mandatory_requirements = parsed.mandatory_requirements
-        if not job.preferred_requirements:
-            job.preferred_requirements = parsed.preferred_requirements
+        job.required_skills = parsed.required_skills
+        job.preferred_skills = parsed.preferred_skills
+        job.education_requirements = parsed.education_requirements
+        job.certifications = parsed.certifications
+        job.domain_requirements = parsed.domain_requirements
+        job.responsibilities = parsed.responsibilities
+        job.mandatory_requirements = parsed.mandatory_requirements
+        job.preferred_requirements = parsed.preferred_requirements
+        job.seniority = parsed.seniority
+        job.min_experience_years = parsed.min_experience_years
+        job.department = parsed.department
+    else:
+        _sync_job_requirements(job)
 
     database.save_job(job)
     record_audit_event(

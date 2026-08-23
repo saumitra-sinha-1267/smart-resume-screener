@@ -198,3 +198,110 @@ def test_audit_logging_and_pii_safety():
     assert len(logs) >= 1
     assert logs[0]["event_type"] == "TEST_SECURITY_EVENT"
     assert "john.doe@confidential.com" not in str(logs[0]["details"])
+
+def test_fresher_data_analyst_jd_extraction():
+    """Validates JD extraction for entry-level / fresher Data Analyst role."""
+    fresher_jd = """
+    Position: Data Analyst – Fresher
+    Department: Data & Analytics
+    
+    About the Role:
+    We are looking for an entry-level Data Analyst (Fresher / 0+ years experience) to analyze business datasets.
+    
+    Required Skills:
+    - Python programming with Pandas and NumPy
+    - SQL database querying
+    - Statistics and exploratory data analysis
+    - Data Visualization
+    
+    Preferred Skills (Nice to have):
+    - Power BI and Tableau
+    - Microsoft Excel
+    - Git / GitHub
+    
+    Education:
+    - Bachelor's in Computer Science, Statistics, Mathematics or related STEM field.
+    """
+
+    res = client.post("/api/jobs/parse", json={"raw_description": fresher_jd})
+    assert res.status_code == 200
+    data = res.json()
+
+    assert "Data Analyst" in data["title"]
+    assert data["seniority"] == "Entry-Level"
+    assert data["min_experience_years"] == 0.0
+
+    # Required skills verification
+    req_skills = data["required_skills"]
+    for s in ["Python", "SQL", "Pandas", "NumPy", "Statistics", "Data Visualization"]:
+        assert s in req_skills
+
+    # Preferred skills verification
+    pref_skills = data["preferred_skills"]
+    assert "Power BI" in pref_skills
+    assert "Tableau" in pref_skills
+    assert any("Excel" in p for p in pref_skills)
+    assert any("Git" in p for p in pref_skills)
+
+def test_empty_and_invalid_jd_extraction():
+    """Verifies that empty or whitespace-only JD input yields 400 Bad Request."""
+    res_empty = client.post("/api/jobs/parse", json={"raw_description": ""})
+    assert res_empty.status_code == 400
+    assert "cannot be empty" in res_empty.json()["detail"]
+
+    res_spaces = client.post("/api/jobs/parse", json={"raw_description": "   \n\t  "})
+    assert res_spaces.status_code == 400
+
+def test_save_and_use_edited_job_requirements():
+    """Ensures edited requirements are saved to database and strictly used by screening engine."""
+    custom_job = {
+        "title": "Custom Data Analyst Specialist",
+        "department": "Analytics",
+        "seniority": "Entry-Level",
+        "min_experience_years": 0.0,
+        "required_skills": ["Python", "SQL", "Pandas", "NumPy", "Statistics", "Data Visualization"],
+        "preferred_skills": ["Power BI", "Microsoft Excel", "Git / GitHub"],
+        "raw_description": "Custom edited description for Data Analyst role",
+        "requirements": [
+            {
+                "id": "req-1",
+                "text": "Entry level / 0+ years professional experience",
+                "category": "experience",
+                "weight": 0.5,
+                "required": False,
+                "is_mandatory": False
+            },
+            {
+                "id": "req-2",
+                "text": "Demonstrated hands-on expertise with Python",
+                "category": "skill",
+                "weight": 1.0,
+                "required": True,
+                "is_mandatory": True
+            },
+            {
+                "id": "req-3",
+                "text": "Demonstrated hands-on expertise with SQL",
+                "category": "skill",
+                "weight": 1.0,
+                "required": True,
+                "is_mandatory": True
+            }
+        ]
+    }
+
+    create_res = client.post("/api/jobs", json=custom_job)
+    assert create_res.status_code == 200
+    saved_job = create_res.json()
+    job_id = saved_job["job_id"]
+
+    # Verify fetch
+    get_res = client.get(f"/api/jobs/{job_id}")
+    assert get_res.status_code == 200
+    fetched_job = get_res.json()
+    assert fetched_job["title"] == "Custom Data Analyst Specialist"
+    assert fetched_job["min_experience_years"] == 0.0
+    assert "Python" in fetched_job["required_skills"]
+    assert "SQL" in fetched_job["required_skills"]
+    assert len(fetched_job["requirements"]) >= 3
+
