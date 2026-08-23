@@ -38,6 +38,8 @@ Smart Resume Screener is an automated applicant tracking and resume screening sy
 
 ## 2–3 Minute Demo Walkthrough
 
+> 📹 **Demo Video**: Direct walkthrough recording is available in [`docs/demo/ResumeScreener.mp4`](docs/demo/ResumeScreener.mp4).
+
 Follow these steps to demonstrate the end-to-end recruiter workflow in under 3 minutes:
 
 1. **Start the System**:
